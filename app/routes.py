@@ -2,6 +2,8 @@ import subprocess
 from flask import Blueprint, request, jsonify
 from . import services
 import logging
+import os
+from pathlib import Path
 
 bp = Blueprint("main", __name__)
 
@@ -14,10 +16,11 @@ def webhook():
         service = services.Services()
         processed_data = service.process_webhook(payload)
         
-        subprocess.run(
-            ["/home/farhang/source_codes/garcon/deploy.sh", processed_data["repo_url"]],
-            check=True,
-        )
+        # Get the parent directory of the current file
+        current_dir = Path(__file__).parent
+        deploy_script = current_dir / "deploy.sh"
+
+        subprocess.run([str(deploy_script), processed_data["repo_url"]], check=True)
 
         # Configure logging to write to ../logs/app.log
         logging.basicConfig(
