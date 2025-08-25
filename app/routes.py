@@ -17,7 +17,7 @@ def webhook():
         processed_data = service.process_webhook(payload)
         
         # Get the parent directory of the current file
-        current_dir = Path(__file__).parent
+        current_dir = Path(__file__).parent.parent
         deploy_script = current_dir / "deploy.sh"
 
         subprocess.run([str(deploy_script), processed_data["repo_url"]], check=True)
