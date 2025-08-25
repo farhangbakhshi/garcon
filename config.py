@@ -1,4 +1,7 @@
 import os
+import dotenv
+
+dotenv.load_dotenv()
 
 class BaseConfig:
     SERVICE_HOST = os.environ.get('HOST')
