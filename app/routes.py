@@ -24,7 +24,7 @@ def webhook():
 
         # Configure logging to write to ../logs/app.log
         logging.basicConfig(
-            filename="../logs/app.log",
+            filename=str(current_dir / "logs" / "app.log"),
             level=logging.INFO,
             format="%(asctime)s - %(levelname)s - %(message)s",
         )
