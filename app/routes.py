@@ -1,6 +1,6 @@
 import subprocess
 from flask import Blueprint, request, jsonify
-from services import Services as service
+from . import services
 import logging
 
 bp = Blueprint("main", __name__)
@@ -11,7 +11,9 @@ def webhook():
     if request.is_json:
         payload = request.get_json()
 
+        service = services.Services()
         processed_data = service.process_webhook(payload)
+        
         subprocess.run(
             ["/home/farhang/source_codes/garcon/deploy.sh", processed_data["repo_url"]],
             check=True,
