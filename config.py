@@ -1,5 +1,11 @@
 import os
 
+class BaseConfig:
+    SERVICE_HOST = os.environ.get('HOST')
+    SERVICE_PORT = os.environ.get('PORT')
 
-class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+class ProductionConfig(BaseConfig):
+    DEBUG = False
+
+class DevelopmentConfig(BaseConfig):
+    DEBUG = True
