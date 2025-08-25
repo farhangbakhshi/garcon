@@ -1,0 +1,81 @@
+# Python bytecode
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Python bytecode and cache
+# (already included above)
+
+# Virtual environment
+.venv/
+venv/
+env/
+/venv/
+/env/
+/.venv/
+.env/  # Added (was not present as a directory)
+
+# Virtual Environment
+# Common names for virtual environments. Add your specific one if it's different.
+# (already included above)
+
+# Editor/IDE specific files
+.idea/
+.vscode/
+*.swp
+*~
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?   # Added (covers swap files with any extension)
+
+# IDE and editor configuration files
+# (already included above)
+
+# Flask-specific files
+instance/ # Contains configuration files and databases specific to a particular instance of the app
+
+# Ignore the instance folder (used by Flask for local configs not meant for version control).
+# (already included above)
+
+# Test-related files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Log files
+*.log
+/logs/
+
+# Ignore log files.
+/logs/  # (already included above)
+
+# Sensitive data (e.g., API keys, database credentials)
+*.env
+.env
+# This should be handled carefully, often using environment variables or a separate config file
+# that is not committed to version control.
+# config.py # Example, if sensitive info is stored here and not managed by other means
+
+# IMPORTANT: Ignore the environment file containing secrets and API keys.
+# (already included above)
+
+# Project-specific files & directories
+/data/projects.db
+/projects_data/
+
+/data/  # Added (ignore all files in /data/ directory)
+
+/projects_data/  # (already included above)
+
+# Operating System Files
+.DS_Store
+Thumbs.db
