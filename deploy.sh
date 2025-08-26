@@ -88,7 +88,14 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "INFO" "Found docker-compose.yml, modifying for Traefik integration"
     
     # Use Python to modify the compose file
-    if "$SCRIPT_DIR/.venv/bin/python" -c "
+    PYTHON_EXEC="python3" # Default to system python
+    if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
+        PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
+    elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
+        PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
+    fi
+
+    if "$PYTHON_EXEC" -c "
 import sys
 sys.path.append('$SCRIPT_DIR')
 from app.traefik_utils import DockerComposeModifier
