@@ -40,11 +40,6 @@ def webhook():
         
         # Configure logging to write to ../logs/app.log
         current_dir = Path(__file__).parent.parent
-        logging.basicConfig(
-            filename=str(current_dir / "logs" / "app.log"),
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s",
-        )
         
         try:
             # Log deployment attempt
