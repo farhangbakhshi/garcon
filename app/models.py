@@ -9,7 +9,9 @@ class DatabaseManager:
         if db_path is None:
             # Default to the data/projects.db file
             current_dir = Path(__file__).parent.parent
-            db_path = current_dir / "data" / "projects.db"
+            data_dir = current_dir / "data"
+            data_dir.mkdir(exist_ok=True) # Ensure the directory exists
+            db_path = data_dir / "projects.db"
         
         self.db_path = str(db_path)
         self.init_database()
