@@ -28,7 +28,7 @@ The deployment process is designed to be simple and efficient:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-garcon-repo-url>
+    git clone https://github.com/farhangbakhshi/garcon
     cd garcon
     ```
 
