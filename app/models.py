@@ -139,3 +139,21 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logging.error(f"Error fetching all projects: {e}")
             return []
+
+    def update_project_container_id(self, project_id, container_id):
+        """Update the container_id for a specific project."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    UPDATE projects 
+                    SET container_id = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (container_id, project_id))
+                
+                conn.commit()
+                logging.info(f"Updated container ID for project ID {project_id}")
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error updating container ID for project {project_id}: {e}")

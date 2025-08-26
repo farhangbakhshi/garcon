@@ -118,6 +118,16 @@ fi
 
 if docker compose up -d --build >> "$LOG_FILE" 2>&1; then
     log "INFO" "Successfully deployed $REPO_NAME using Docker Compose"
+    
+    # Get the container ID of the first service
+    CONTAINER_ID=$(docker compose ps -q | head -n 1)
+    if [ -n "$CONTAINER_ID" ]; then
+        log "INFO" "Retrieved container ID: $CONTAINER_ID"
+        # Echo the container ID so it can be captured by the calling script
+        echo "CONTAINER_ID:$CONTAINER_ID"
+    else
+        log "WARNING" "Could not retrieve container ID for $REPO_NAME"
+    fi
 else
     log "ERROR" "Failed to deploy $REPO_NAME using Docker Compose"
     exit 1

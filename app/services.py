@@ -45,9 +45,11 @@ class Services:
             self.db.add_or_update_project(repo_name, repo_url, local_path, container_id)
             logging.info(f"Updated deployment info for {repo_name}")
     
-    def log_deployment_status(self, project_id, status, commit_hash=None, error_message=None):
+    def log_deployment_status(self, project_id, status, commit_hash=None, error_message=None, container_id=None):
         """Log the deployment status."""
         self.db.log_deployment(project_id, status, commit_hash, error_message)
+        if status == 'success' and container_id:
+            self.db.update_project_container_id(project_id, container_id)
         
     def get_project_urls(self, repo_name):
         """Generate Traefik URLs for a project's services."""

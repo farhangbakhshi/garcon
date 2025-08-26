@@ -58,18 +58,27 @@ def webhook():
                 text=True
             )
             
+            # Extract container ID from the script's output
+            container_id = None
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith("CONTAINER_ID:"):
+                    container_id = line.split(':', 1)[1].strip()
+                    break
+            
             # Log successful deployment
             service.log_deployment_status(
                 project['id'], 
                 'success', 
-                processed_data.get('commit_hash')
+                processed_data.get('commit_hash'),
+                container_id=container_id
             )
             
             logging.info(f"Webhook processed successfully! Repository: {processed_data['repo_name']}")
             return jsonify(
                 message="Webhook received and processed successfully",
                 repository=processed_data['repo_name'],
-                project_id=project['id']
+                project_id=project['id'],
+                container_id=container_id
             ), 200
             
         except subprocess.CalledProcessError as e:
