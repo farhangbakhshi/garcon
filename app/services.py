@@ -1,4 +1,5 @@
 import logging
+import re
 from .models import DatabaseManager
 
 
@@ -47,3 +48,25 @@ class Services:
     def log_deployment_status(self, project_id, status, commit_hash=None, error_message=None):
         """Log the deployment status."""
         self.db.log_deployment(project_id, status, commit_hash, error_message)
+        
+    def get_project_urls(self, repo_name):
+        """Generate Traefik URLs for a project's services."""
+        urls = []
+        domain_suffix = "localhost"
+        
+        # Clean project name for subdomain
+        clean_name = re.sub(r'[^a-z0-9-]', '-', repo_name.lower())
+        
+        # For now, we'll assume common service names
+        # In a more advanced implementation, this could parse the actual compose file
+        common_services = ['web', 'app', 'frontend', 'backend', 'api', 'server']
+        
+        # Generate potential URLs
+        # Primary URL (just project name)
+        urls.append(f"http://{clean_name}.{domain_suffix}")
+        
+        # Service-specific URLs
+        for service in common_services:
+            urls.append(f"http://{clean_name}-{service}.{domain_suffix}")
+            
+        return urls
