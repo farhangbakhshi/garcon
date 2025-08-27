@@ -30,6 +30,7 @@ class DatabaseManager:
                         repo_url TEXT NOT NULL,
                         local_path TEXT,
                         container_id TEXT,
+                        deployment_uuid TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
@@ -44,9 +45,32 @@ class DatabaseManager:
                         deploy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         commit_hash TEXT,
                         error_message TEXT,
+                        container_id TEXT,
+                        deployment_uuid TEXT,
+                        deployment_type TEXT DEFAULT 'blue-green',
                         FOREIGN KEY (project_id) REFERENCES projects (id)
                     )
                 ''')
+                
+                # Add deployment_uuid column to projects table if it doesn't exist
+                cursor.execute("PRAGMA table_info(projects)")
+                columns = [column[1] for column in cursor.fetchall()]
+                if 'deployment_uuid' not in columns:
+                    cursor.execute('ALTER TABLE projects ADD COLUMN deployment_uuid TEXT')
+                    logging.info("Added deployment_uuid column to projects table")
+                
+                # Add columns to deployments table if they don't exist
+                cursor.execute("PRAGMA table_info(deployments)")
+                columns = [column[1] for column in cursor.fetchall()]
+                if 'container_id' not in columns:
+                    cursor.execute('ALTER TABLE deployments ADD COLUMN container_id TEXT')
+                    logging.info("Added container_id column to deployments table")
+                if 'deployment_uuid' not in columns:
+                    cursor.execute('ALTER TABLE deployments ADD COLUMN deployment_uuid TEXT')
+                    logging.info("Added deployment_uuid column to deployments table")
+                if 'deployment_type' not in columns:
+                    cursor.execute('ALTER TABLE deployments ADD COLUMN deployment_type TEXT DEFAULT "blue-green"')
+                    logging.info("Added deployment_type column to deployments table")
                 
                 conn.commit()
                 logging.info("Database initialized successfully")
@@ -73,7 +97,7 @@ class DatabaseManager:
             logging.error(f"Error fetching project {repo_name}: {e}")
             return None
     
-    def add_or_update_project(self, repo_name, repo_url, local_path=None, container_id=None):
+    def add_or_update_project(self, repo_name, repo_url, local_path=None, container_id=None, deployment_uuid=None):
         """Add a new project or update an existing one."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -87,17 +111,17 @@ class DatabaseManager:
                     cursor.execute('''
                         UPDATE projects 
                         SET repo_url = ?, local_path = ?, container_id = ?, 
-                            updated_at = CURRENT_TIMESTAMP
+                            deployment_uuid = ?, updated_at = CURRENT_TIMESTAMP
                         WHERE repo_name = ?
-                    ''', (repo_url, local_path, container_id, repo_name))
+                    ''', (repo_url, local_path, container_id, deployment_uuid, repo_name))
                     project_id = existing_project['id']
                     logging.info(f"Updated existing project: {repo_name}")
                 else:
                     # Insert new project
                     cursor.execute('''
-                        INSERT INTO projects (repo_name, repo_url, local_path, container_id)
-                        VALUES (?, ?, ?, ?)
-                    ''', (repo_name, repo_url, local_path, container_id))
+                        INSERT INTO projects (repo_name, repo_url, local_path, container_id, deployment_uuid)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (repo_name, repo_url, local_path, container_id, deployment_uuid))
                     project_id = cursor.lastrowid
                     logging.info(f"Added new project: {repo_name}")
                 
@@ -108,22 +132,66 @@ class DatabaseManager:
             logging.error(f"Error adding/updating project {repo_name}: {e}")
             return None
     
-    def log_deployment(self, project_id, status, commit_hash=None, error_message=None):
-        """Log a deployment attempt."""
+    def log_deployment(self, project_id, status, commit_hash=None, error_message=None, container_id=None, deployment_uuid=None, deployment_type='blue-green'):
+        """Log a deployment attempt with comprehensive information."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
                 cursor.execute('''
-                    INSERT INTO deployments (project_id, status, commit_hash, error_message)
-                    VALUES (?, ?, ?, ?)
-                ''', (project_id, status, commit_hash, error_message))
+                    INSERT INTO deployments 
+                    (project_id, status, commit_hash, error_message, container_id, deployment_uuid, deployment_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (project_id, status, commit_hash, error_message, container_id, deployment_uuid, deployment_type))
                 
                 conn.commit()
-                logging.info(f"Logged deployment for project ID {project_id}: {status}")
+                logging.info(f"Logged {deployment_type} deployment for project ID {project_id}: {status}")
                 
         except sqlite3.Error as e:
             logging.error(f"Error logging deployment: {e}")
+    
+    def get_deployment_history(self, project_id, limit=50):
+        """Get deployment history for a project."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT * FROM deployments 
+                    WHERE project_id = ? 
+                    ORDER BY deploy_time DESC 
+                    LIMIT ?
+                ''', (project_id, limit))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results]
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching deployment history for project {project_id}: {e}")
+            return []
+    
+    def get_recent_deployments(self, limit=20):
+        """Get recent deployments across all projects."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT d.*, p.repo_name 
+                    FROM deployments d
+                    JOIN projects p ON d.project_id = p.id
+                    ORDER BY d.deploy_time DESC 
+                    LIMIT ?
+                ''', (limit,))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results]
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching recent deployments: {e}")
+            return []
     
     def get_all_projects(self):
         """Get all projects in the database."""
