@@ -176,3 +176,42 @@ class Services:
         except Exception as e:
             self.logger.error(f"Failed to get deployment metrics: {str(e)}", exc_info=True)
             return None
+
+    def check_container_status(self, project):
+        """Check if the project's containers are actually running."""
+        if not project.get('container_id'):
+            return False
+            
+        try:
+            import subprocess
+            # Check if the container is running
+            result = subprocess.run(
+                ['docker', 'ps', '--format', '{{.Names}}', '--filter', f'id={project["container_id"]}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            # If the command succeeded and returned output, container is running
+            is_running = result.returncode == 0 and result.stdout.strip() != ""
+            
+            if not is_running:
+                self.logger.debug(f"Container {project['container_id']} for project {project['repo_name']} is not running")
+                # Update the database to clear the container_id since it's not running
+                self.db.update_project_container_id(project['id'], None)
+            
+            return is_running
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to check container status for {project['repo_name']}: {str(e)}")
+            return False
+
+    def get_project_status(self, project):
+        """Get the actual status of a project by checking if containers are running."""
+        if not project.get('container_id'):
+            return 'stopped'
+        
+        if self.check_container_status(project):
+            return 'running'
+        else:
+            return 'stopped'

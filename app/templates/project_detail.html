@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.repo_name }} - Project Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.projects_ui') }}">Projects</a></li>
+                <li class="breadcrumb-item active">{{ project.repo_name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-6">
+                <i class="bi bi-folder"></i> {{ project.repo_name }}
+            </h1>
+            <div>
+                <button class="btn btn-success deploy-btn" 
+                        data-project="{{ project.repo_name }}"
+                        data-repo-url="{{ project.repo_url }}">
+                    <i class="bi bi-rocket"></i> Deploy Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Info -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Project Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Repository:</dt>
+                    <dd class="col-sm-8">
+                        <a href="{{ project.repo_url }}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-github"></i> {{ project.repo_url }}
+                        </a>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        {% if project.actual_status == 'running' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-circle-fill"></i> Running
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-circle"></i> Stopped
+                            </span>
+                        {% endif %}
+                    </dd>
+                    
+                    {% if project.container_id %}
+                    <dt class="col-sm-4">Container ID:</dt>
+                    <dd class="col-sm-8">
+                        <code>{{ project.container_id }}</code>
+                    </dd>
+                    {% endif %}
+                    
+                    {% if project.deployment_uuid %}
+                    <dt class="col-sm-4">Latest Deployment:</dt>
+                    <dd class="col-sm-8">
+                        <code>{{ project.deployment_uuid }}</code>
+                    </dd>
+                    {% endif %}
+                    
+                    <dt class="col-sm-4">Created:</dt>
+                    <dd class="col-sm-8">{{ project.created_at }}</dd>
+                    
+                    <dt class="col-sm-4">Last Updated:</dt>
+                    <dd class="col-sm-8">{{ project.updated_at }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-link-45deg"></i> Access URLs
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if project_urls %}
+                    {% for url in project_urls[:5] %}
+                        <div class="mb-2">
+                            <a href="{{ url }}" target="_blank" class="btn btn-outline-info btn-sm w-100">
+                                <i class="bi bi-box-arrow-up-right"></i> {{ url.split('//')[1] }}
+                            </a>
+                        </div>
+                    {% endfor %}
+                    {% if project_urls|length > 5 %}
+                        <small class="text-muted">And {{ project_urls|length - 5 }} more...</small>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        No URLs available. Deploy the project first.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deployment History -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Deployment History
+                </h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                {% if deployments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                    <th>Time</th>
+                                    <th>Commit</th>
+                                    <th>Container</th>
+                                    <th>UUID</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for deployment in deployments %}
+                                <tr>
+                                    <td>
+                                        {% if deployment.status == 'success' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Success
+                                            </span>
+                                        {% elif deployment.status == 'failed' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> Failed
+                                            </span>
+                                        {% elif deployment.status == 'started' %}
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-hourglass-split"></i> Started
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ deployment.status.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ deployment.deployment_type or 'legacy' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ deployment.deploy_time }}</small>
+                                    </td>
+                                    <td>
+                                        {% if deployment.commit_hash %}
+                                            <code class="small">{{ deployment.commit_hash[:8] }}...</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if deployment.container_id %}
+                                            <code class="small">{{ deployment.container_id[:12] }}...</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if deployment.deployment_uuid %}
+                                            <code class="small">{{ deployment.deployment_uuid[:8] }}...</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if deployment.error_message %}
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="tooltip" 
+                                                    title="{{ deployment.error_message }}">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history display-1 text-muted"></i>
+                        <h5 class="mt-3">No Deployments Yet</h5>
+                        <p class="text-muted">This project hasn't been deployed yet.</p>
+                        <button class="btn btn-success deploy-btn" 
+                                data-project="{{ project.repo_name }}"
+                                data-repo-url="{{ project.repo_url }}">
+                            <i class="bi bi-rocket"></i> Deploy Now
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deployment Modal -->
+<div class="modal fade" id="deployModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deploy Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to trigger a deployment for <strong id="deploy-project-name"></strong>?</p>
+                <div class="mb-3">
+                    <label for="deploymentType" class="form-label">Deployment Type</label>
+                    <select class="form-select" id="deploymentType">
+                        <option value="blue-green">Blue-Green (Zero Downtime)</option>
+                        <option value="simple">Simple (Quick)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmDeploy">
+                    <i class="bi bi-rocket"></i> Deploy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

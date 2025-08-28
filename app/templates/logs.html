@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Garcon{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="display-6 mb-4">
+            <i class="bi bi-journal-text"></i> System Logs
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="logType" id="appLogs" value="app" checked>
+            <label class="btn btn-outline-primary" for="appLogs">
+                <i class="bi bi-gear"></i> Application Logs
+            </label>
+            
+            <input type="radio" class="btn-check" name="logType" id="deployLogs" value="deploy">
+            <label class="btn btn-outline-success" for="deployLogs">
+                <i class="bi bi-rocket"></i> Deployment Logs
+            </label>
+        </div>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <button class="btn btn-outline-secondary" onclick="refreshLogs()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-outline-info" onclick="toggleAutoRefresh()">
+            <i class="bi bi-arrow-repeat"></i> Auto Refresh (<span id="autoRefreshStatus">Off</span>)
+        </button>
+    </div>
+</div>
+
+<!-- Application Logs -->
+<div class="row mb-4" id="appLogsSection">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Application Logs (Last 50 lines)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <pre id="appLogContent" class="log-content mb-0">{{ app_logs }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deployment Logs -->
+<div class="row mb-4" id="deployLogsSection" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-rocket"></i> Deployment Logs (Last 100 lines)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <pre id="deployLogContent" class="log-content mb-0">{{ deploy_logs }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Statistics -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-text display-4 text-primary"></i>
+                <h5 class="mt-2">App Log Size</h5>
+                <p class="text-muted">{{ log_stats.app_log_size }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-text display-4 text-success"></i>
+                <h5 class="mt-2">Deploy Log Size</h5>
+                <p class="text-muted">{{ log_stats.deploy_log_size }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-clock display-4 text-info"></i>
+                <h5 class="mt-2">Last Updated</h5>
+                <p class="text-muted">{{ log_stats.last_modified }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let autoRefreshInterval = null;
+let autoRefreshEnabled = false;
+
+// Tab switching
+document.querySelectorAll('input[name="logType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.value === 'app') {
+            document.getElementById('appLogsSection').style.display = 'block';
+            document.getElementById('deployLogsSection').style.display = 'none';
+        } else {
+            document.getElementById('appLogsSection').style.display = 'none';
+            document.getElementById('deployLogsSection').style.display = 'block';
+        }
+    });
+});
+
+// Refresh logs
+function refreshLogs() {
+    location.reload();
+}
+
+// Auto refresh toggle
+function toggleAutoRefresh() {
+    if (autoRefreshEnabled) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshEnabled = false;
+        document.getElementById('autoRefreshStatus').textContent = 'Off';
+    } else {
+        autoRefreshInterval = setInterval(refreshLogs, 10000); // Refresh every 10 seconds
+        autoRefreshEnabled = true;
+        document.getElementById('autoRefreshStatus').textContent = 'On (10s)';
+    }
+}
+
+// Scroll to bottom of logs
+function scrollToBottom() {
+    const appLog = document.getElementById('appLogContent');
+    const deployLog = document.getElementById('deployLogContent');
+    
+    if (appLog.offsetParent !== null) {
+        appLog.scrollTop = appLog.scrollHeight;
+    }
+    if (deployLog.offsetParent !== null) {
+        deployLog.scrollTop = deployLog.scrollHeight;
+    }
+}
+
+// Scroll to bottom on page load
+window.addEventListener('load', scrollToBottom);
+</script>
+{% endblock %}

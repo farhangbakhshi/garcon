@@ -200,12 +200,19 @@ main() {
         fi
     fi
 
-    # Check if docker-compose.yml exists
+    # Check if docker-compose.yml or docker-compose.yaml exists
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
-    if [ ! -f "$COMPOSE_FILE" ]; then
-        log "WARNING" "No docker-compose.yml found in repository $REPO_NAME"
-        log "INFO" "Skipping deployment for $REPO_NAME"
-        exit 0
+    COMPOSE_FILE_YAML="$TARGET_DIR/docker-compose.yaml"
+    
+    if [ -f "$COMPOSE_FILE" ]; then
+        log "INFO" "Found docker-compose.yml in repository $REPO_NAME"
+    elif [ -f "$COMPOSE_FILE_YAML" ]; then
+        COMPOSE_FILE="$COMPOSE_FILE_YAML"
+        log "INFO" "Found docker-compose.yaml in repository $REPO_NAME"
+    else
+        log "ERROR" "No docker-compose.yml or docker-compose.yaml found in repository $REPO_NAME"
+        log "ERROR" "Deployment failed: missing docker-compose configuration file"
+        exit 1
     fi
 
     # Backup original compose file

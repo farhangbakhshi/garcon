@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Add Project - Garcon{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Add New Project
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.add_project_form') }}" id="addProjectForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            <i class="bi bi-folder"></i> Project Name
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Enter project name" required>
+                        <div class="form-text">
+                            A friendly name for your project.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="git_url" class="form-label">
+                            <i class="bi bi-github"></i> GitHub Repository URL
+                        </label>
+                        <input type="url" class="form-control" id="git_url" name="git_url" 
+                               placeholder="https://github.com/username/repository.git" required>
+                        <div class="form-text">
+                            Enter the full GitHub repository URL. Make sure it contains a Dockerfile and docker-compose.yml.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="domain" class="form-label">
+                            <i class="bi bi-globe"></i> Domain
+                        </label>
+                        <input type="text" class="form-control" id="domain" name="domain" 
+                               placeholder="myproject.example.com" required>
+                        <div class="form-text">
+                            The domain name where your project will be accessible.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="deploy_immediately" name="deploy_immediately" checked>
+                            <label class="form-check-label" for="deploy_immediately">
+                                Deploy immediately after adding
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="deployment_type" class="form-label">Deployment Type</label>
+                        <select class="form-select" id="deployment_type" name="deployment_type">
+                            <option value="blue-green">Blue-Green (Zero Downtime)</option>
+                            <option value="simple">Simple (Quick)</option>
+                        </select>
+                        <div class="form-text">
+                            Blue-Green deployments ensure zero downtime but take longer. Simple deployments are faster but may cause brief service interruption.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Add Project
+                        </button>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Project Requirements
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">For successful deployment, your repository should contain:</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check text-success"></i> <code>Dockerfile</code> - Container build instructions</li>
+                    <li><i class="bi bi-check text-success"></i> <code>docker-compose.yml</code> - Service configuration</li>
+                    <li><i class="bi bi-check text-success"></i> Health check endpoint (recommended for blue-green deployments)</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>Tip:</strong> Add a <code>/health</code> endpoint to your application that returns HTTP 200 
+                    for better blue-green deployment health checks.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

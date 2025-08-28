@@ -1,5 +1,5 @@
 import subprocess
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template, flash, redirect, url_for
 from . import services
 from .utils import verify_github_webhook
 import logging
@@ -7,6 +7,386 @@ import os
 from pathlib import Path
 
 bp = Blueprint("main", __name__)
+
+
+# Web UI Routes
+@bp.route("/dashboard")
+def dashboard():
+    """Main dashboard web interface."""
+    try:
+        service = services.Services()
+        recent_deployments = service.db.get_recent_deployments(5)
+        all_projects = service.db.get_all_projects()
+        
+        # Add URLs and actual status for each project
+        for project in all_projects:
+            project['urls'] = service.get_project_urls(project['repo_name'])
+            project['actual_status'] = service.get_project_status(project)
+        
+        # Calculate stats for the dashboard using efficient count methods
+        stats = {
+            'total_projects': service.db.get_project_count(),
+            'total_deployments': service.db.get_deployment_count()
+        }
+            
+        return render_template('dashboard.html', 
+                             recent_deployments=recent_deployments,
+                             projects=all_projects,
+                             stats=stats)
+    except Exception as e:
+        logging.error(f"Error loading dashboard: {str(e)}")
+        flash('Error loading dashboard data', 'error')
+        # Provide empty stats to prevent template errors
+        empty_stats = {'total_projects': 0, 'total_deployments': 0}
+        return render_template('dashboard.html', 
+                             recent_deployments=[],
+                             projects=[],
+                             stats=empty_stats)
+
+
+@bp.route("/projects_ui")
+def projects_ui():
+    """Projects management web interface."""
+    try:
+        service = services.Services()
+        projects = service.db.get_all_projects()
+        
+        # Add URLs, deployment status, and actual status for each project
+        for project in projects:
+            project['urls'] = service.get_project_urls(project['repo_name'])
+            project['actual_status'] = service.get_project_status(project)
+            # Get latest deployment status
+            deployments = service.db.get_deployment_history(project['id'], limit=1)
+            project['latest_deployment'] = deployments[0] if deployments else None
+            
+        return render_template('projects.html', projects=projects)
+    except Exception as e:
+        logging.error(f"Error loading projects: {str(e)}")
+        flash('Error loading projects', 'error')
+        return render_template('projects.html', projects=[])
+
+
+@bp.route("/add_project", methods=["GET", "POST"])
+def add_project_form():
+    """Add new project web interface."""
+    if request.method == 'POST':
+        try:
+            # Get form data - using the field names that match the template and JavaScript
+            name = request.form.get('name')
+            git_url = request.form.get('git_url')
+            domain = request.form.get('domain')
+            deployment_type = request.form.get('deployment_type', 'blue-green')
+            deploy_immediately = request.form.get('deploy_immediately') == 'on'
+            
+            if not all([name, git_url, domain]):
+                flash('All fields are required', 'error')
+                return render_template('add_project.html')
+            
+            service = services.Services()
+            
+            # Create project using the provided name and git_url
+            project = service.get_or_create_project(name, git_url)
+            if project:
+                flash(f'Project "{name}" added successfully!', 'success')
+                
+                # TODO: Store domain information if needed in the database
+                # For now, we're storing it in the project name/repo_name field
+                
+                # Deploy immediately if requested
+                if deploy_immediately:
+                    try:
+                        # Log deployment attempt
+                        service.log_deployment_status(
+                            project['id'], 
+                            'started',
+                            deployment_type=deployment_type
+                        )
+                        
+                        # Choose deployment script
+                        current_dir = Path(__file__).parent.parent
+                        if deployment_type == 'blue-green':
+                            deploy_script = current_dir / "blue_green_deploy.sh"
+                        else:
+                            deploy_script = current_dir / "deploy.sh"
+                        
+                        # Run deployment in background
+                        import threading
+                        
+                        def run_deployment():
+                            try:
+                                result = subprocess.run(
+                                    [str(deploy_script), git_url], 
+                                    check=True,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=600
+                                )
+                                
+                                # Extract deployment info
+                                container_id = None
+                                deployment_uuid = None
+                                
+                                for line in result.stdout.strip().split('\n'):
+                                    if line.startswith("CONTAINER_ID:"):
+                                        container_id = line.split(':', 1)[1].strip()
+                                    elif line.startswith("DEPLOYMENT_UUID:"):
+                                        deployment_uuid = line.split(':', 1)[1].strip()
+                                
+                                # Log success
+                                service.log_deployment_status(
+                                    project['id'], 
+                                    'success',
+                                    container_id=container_id,
+                                    deployment_uuid=deployment_uuid,
+                                    deployment_type=deployment_type
+                                )
+                                
+                                logging.info(f"Initial deployment completed for {name}")
+                                
+                            except Exception as e:
+                                error_msg = f"Initial deployment failed: {str(e)}"
+                                logging.error(error_msg)
+                                service.log_deployment_status(
+                                    project['id'], 
+                                    'failed', 
+                                    error_message=error_msg,
+                                    deployment_type=deployment_type
+                                )
+                        
+                        # Start deployment in background
+                        deployment_thread = threading.Thread(target=run_deployment)
+                        deployment_thread.daemon = True
+                        deployment_thread.start()
+                        
+                        flash('Deployment started successfully!', 'info')
+                        
+                    except Exception as deploy_e:
+                        logging.error(f"Error starting initial deployment: {str(deploy_e)}")
+                        flash('Project added but deployment failed to start', 'warning')
+                
+                return redirect(url_for('main.projects_ui'))
+            else:
+                flash('Error creating project', 'error')
+                
+        except Exception as e:
+            logging.error(f"Error adding project: {str(e)}")
+            flash('Error adding project', 'error')
+    
+    return render_template('add_project.html')
+
+
+@bp.route("/project/<project_name>")
+def project_detail(project_name):
+    """Project detail web interface."""
+    try:
+        service = services.Services()
+        project = service.db.get_project_by_repo_name(project_name)
+        
+        if not project:
+            flash('Project not found', 'error')
+            return redirect(url_for('main.projects_ui'))
+        
+        # Get deployment history
+        deployments = service.db.get_deployment_history(project['id'])
+        
+        # Get project URLs
+        project['urls'] = service.get_project_urls(project_name)
+        
+        # Get actual project status by checking if containers are running
+        project['actual_status'] = service.get_project_status(project)
+        
+        return render_template('project_detail.html', 
+                             project=project,
+                             deployments=deployments,
+                             project_urls=project['urls'])
+    except Exception as e:
+        logging.error(f"Error loading project {project_name}: {str(e)}")
+        flash('Error loading project details', 'error')
+        return redirect(url_for('main.projects_ui'))
+
+
+@bp.route("/deployment_history")
+def deployment_history_ui():
+    """Deployment history web interface."""
+    try:
+        service = services.Services()
+        deployments = service.db.get_recent_deployments(50)  # Get last 50 deployments
+        
+        return render_template('deployment_history.html', deployments=deployments)
+    except Exception as e:
+        logging.error(f"Error loading deployment history: {str(e)}")
+        flash('Error loading deployment history', 'error')
+        return render_template('deployment_history.html', deployments=[])
+
+
+@bp.route("/logs_ui")
+def view_logs_ui():
+    """Logs viewer web interface."""
+    try:
+        current_dir = Path(__file__).parent.parent
+        
+        # Read recent logs
+        app_log_file = current_dir / "logs" / "app.log"
+        deploy_log_file = current_dir / "logs" / "deploy.log"
+        
+        app_logs = ""
+        deploy_logs = ""
+        log_stats = {}
+        
+        if app_log_file.exists():
+            with open(app_log_file, 'r') as f:
+                lines = f.readlines()
+                app_logs = ''.join(lines[-50:]) if lines else "No application logs yet."
+            
+            # Get file stats
+            stat = app_log_file.stat()
+            log_stats['app_log_size'] = f"{stat.st_size / 1024:.1f} KB"
+        else:
+            app_logs = "Application log file not found."
+            log_stats['app_log_size'] = "N/A"
+        
+        if deploy_log_file.exists():
+            with open(deploy_log_file, 'r') as f:
+                lines = f.readlines()
+                deploy_logs = ''.join(lines[-100:]) if lines else "No deployment logs yet."
+            
+            # Get file stats
+            stat = deploy_log_file.stat()
+            log_stats['deploy_log_size'] = f"{stat.st_size / 1024:.1f} KB"
+            log_stats['last_modified'] = stat.st_mtime
+        else:
+            deploy_logs = "Deployment log file not found."
+            log_stats['deploy_log_size'] = "N/A"
+        
+        # Format last modified time
+        if 'last_modified' in log_stats:
+            import datetime
+            log_stats['last_modified'] = datetime.datetime.fromtimestamp(
+                log_stats['last_modified']
+            ).strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            log_stats['last_modified'] = "N/A"
+        
+        return render_template('logs.html', 
+                             app_logs=app_logs,
+                             deploy_logs=deploy_logs,
+                             log_stats=log_stats)
+    except Exception as e:
+        logging.error(f"Error loading logs: {str(e)}")
+        flash('Error loading logs', 'error')
+        return render_template('logs.html', 
+                             app_logs="Error loading logs",
+                             deploy_logs="Error loading logs",
+                             log_stats={})
+
+
+@bp.route("/deploy", methods=["POST"])
+def deploy_project():
+    """Deploy a project via web interface."""
+    try:
+        data = request.get_json() if request.is_json else request.form
+        project_id = data.get('project_id')
+        deployment_type = data.get('deployment_type', 'blue-green')
+        
+        if not project_id:
+            if request.is_json:
+                return jsonify(success=False, error='Project ID is required'), 400
+            flash('Project ID is required', 'error')
+            return redirect(url_for('main.projects_ui'))
+        
+        service = services.Services()
+        project = service.db.get_project_by_id(project_id)
+        
+        if not project:
+            if request.is_json:
+                return jsonify(success=False, error='Project not found'), 404
+            flash('Project not found', 'error')
+            return redirect(url_for('main.projects_ui'))
+        
+        # Trigger deployment using existing logic
+        repo_url = project['repo_url']
+        project_name = project['repo_name']
+        
+        logging.info(f"Web UI deployment triggered for {project_name}")
+        
+        # Log deployment attempt
+        service.log_deployment_status(
+            project['id'], 
+            'started',
+            deployment_type=deployment_type
+        )
+        
+        # Choose deployment script
+        current_dir = Path(__file__).parent.parent
+        if deployment_type == 'blue-green':
+            deploy_script = current_dir / "blue_green_deploy.sh"
+        else:
+            deploy_script = current_dir / "deploy.sh"
+        
+        # Run deployment in background for web UI
+        import threading
+        
+        def run_deployment():
+            try:
+                result = subprocess.run(
+                    [str(deploy_script), repo_url], 
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=600
+                )
+                
+                # Extract deployment info
+                container_id = None
+                deployment_uuid = None
+                
+                for line in result.stdout.strip().split('\n'):
+                    if line.startswith("CONTAINER_ID:"):
+                        container_id = line.split(':', 1)[1].strip()
+                    elif line.startswith("DEPLOYMENT_UUID:"):
+                        deployment_uuid = line.split(':', 1)[1].strip()
+                
+                # Log success
+                service.log_deployment_status(
+                    project['id'], 
+                    'success',
+                    container_id=container_id,
+                    deployment_uuid=deployment_uuid,
+                    deployment_type=deployment_type
+                )
+                
+                logging.info(f"Web UI deployment completed for {project_name}")
+                
+            except Exception as e:
+                error_msg = f"Web UI deployment failed: {str(e)}"
+                logging.error(error_msg)
+                service.log_deployment_status(
+                    project['id'], 
+                    'failed', 
+                    error_message=error_msg,
+                    deployment_type=deployment_type
+                )
+        
+        # Start deployment in background
+        deployment_thread = threading.Thread(target=run_deployment)
+        deployment_thread.daemon = True
+        deployment_thread.start()
+        
+        if request.is_json:
+            return jsonify(success=True, message='Deployment started successfully')
+        
+        flash('Deployment started successfully!', 'success')
+        return redirect(url_for('main.project_detail', project_name=project_name))
+        
+    except Exception as e:
+        error_msg = f"Error starting deployment: {str(e)}"
+        logging.error(error_msg)
+        
+        if request.is_json:
+            return jsonify(success=False, error=error_msg), 500
+        
+        flash('Error starting deployment', 'error')
+        return redirect(url_for('main.projects_ui'))
 
 
 @bp.route("/webhook", methods=["POST"])
@@ -71,11 +451,40 @@ def webhook():
             container_id = None
             deployment_uuid = None
             
-            for line in result.stdout.strip().split('\n'):
+            # Parse both stdout and stderr for the output markers
+            full_output = result.stdout + "\n" + result.stderr
+            
+            for line in full_output.strip().split('\n'):
+                line = line.strip()
                 if line.startswith("CONTAINER_ID:"):
                     container_id = line.split(':', 1)[1].strip()
+                    logging.info(f"Extracted container ID: {container_id}")
                 elif line.startswith("DEPLOYMENT_UUID:"):
                     deployment_uuid = line.split(':', 1)[1].strip()
+                    logging.info(f"Extracted deployment UUID: {deployment_uuid}")
+            
+            # If we can't extract from output, try to get from log file
+            if not container_id or not deployment_uuid:
+                logging.warning("Could not extract container ID or UUID from script output, checking log file")
+                log_file_path = current_dir / "logs" / "deploy.log"
+                try:
+                    with open(log_file_path, 'r') as log_file:
+                        log_lines = log_file.readlines()[-50:]  # Check last 50 lines
+                        for line in log_lines:
+                            if "Primary container deployed:" in line and not container_id:
+                                # Extract container ID from log line
+                                parts = line.split("Primary container deployed:")
+                                if len(parts) > 1:
+                                    container_id = parts[1].strip()
+                                    logging.info(f"Extracted container ID from log: {container_id}")
+                            elif "Deployment UUID:" in line and not deployment_uuid:
+                                # Extract UUID from log line
+                                parts = line.split("Deployment UUID:")
+                                if len(parts) > 1:
+                                    deployment_uuid = parts[1].strip()
+                                    logging.info(f"Extracted deployment UUID from log: {deployment_uuid}")
+                except Exception as log_e:
+                    logging.warning(f"Could not read deploy log: {log_e}")
             
             # Update project with new container information
             if container_id:
@@ -165,145 +574,8 @@ def webhook():
 
 @bp.route("/")
 def index():
-    """Main dashboard showing Garcon status, recent deployments, and links."""
-    try:
-        service = services.Services()
-        recent_deployments = service.db.get_recent_deployments(5)  # Get last 5 deployments
-        all_projects = service.db.get_all_projects()
-        
-        # Generate deployment history HTML
-        deployment_html = ""
-        if recent_deployments:
-            deployment_html = "<h3>Recent Deployments:</h3><div class='deployments'>"
-            for deployment in recent_deployments:
-                status_class = "success" if deployment['status'] == 'success' else "failed" if deployment['status'] == 'failed' else "running"
-                deployment_type = deployment.get('deployment_type', 'unknown')
-                commit_info = f" ({deployment['commit_hash'][:8]})" if deployment.get('commit_hash') else ""
-                
-                deployment_html += f"""
-                <div class='deployment-item {status_class}'>
-                    <strong>{deployment['repo_name']}</strong> - {deployment['status'].title()} 
-                    ({deployment_type}){commit_info}
-                    <span class='timestamp'>{deployment['deploy_time']}</span>
-                </div>
-                """
-            deployment_html += "</div>"
-        else:
-            deployment_html = "<div class='info'><p>No deployments yet. Send a webhook to start deploying!</p></div>"
-        
-        # Generate projects HTML
-        projects_html = ""
-        if all_projects:
-            projects_html = "<h3>Active Projects:</h3><div class='projects'>"
-            for project in all_projects:
-                container_status = "🟢 Running" if project.get('container_id') else "🔴 Not Running"
-                projects_html += f"""
-                <div class='project-item'>
-                    <strong>{project['repo_name']}</strong> - {container_status}
-                    <div class='project-links'>
-                        <a href='/projects/{project['repo_name']}/deployments'>Deployments</a>
-                        <a href='/projects/{project['repo_name']}/urls'>URLs</a>
-                    </div>
-                </div>
-                """
-            projects_html += "</div>"
-    except Exception as e:
-        logging.error(f"Error loading dashboard data: {str(e)}")
-        deployment_html = "<div class='error'>Error loading deployment data</div>"
-        projects_html = "<div class='error'>Error loading projects data</div>"
-    
-    html = f"""
-    <html>
-    <head>
-        <title>Garcon - Zero-Downtime Docker Deployment</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }}
-            .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-            .header {{ text-align: center; margin-bottom: 30px; }}
-            .status {{ padding: 15px; margin: 10px 0; border-radius: 5px; }}
-            .status.running {{ background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }}
-            .status.stopped {{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }}
-            .links {{ margin: 20px 0; }}
-            .links a {{ display: inline-block; margin: 5px 10px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
-            .links a:hover {{ background-color: #0056b3; }}
-            .info {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }}
-            .error {{ background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 15px 0; color: #721c24; }}
-            .endpoint {{ font-family: monospace; background-color: #f8f9fa; padding: 5px; border-radius: 3px; }}
-            .deployments {{ margin: 10px 0; }}
-            .deployment-item {{ padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 4px solid #ccc; }}
-            .deployment-item.success {{ border-left-color: #28a745; background-color: #d4edda; }}
-            .deployment-item.failed {{ border-left-color: #dc3545; background-color: #f8d7da; }}
-            .deployment-item.running {{ border-left-color: #ffc107; background-color: #fff3cd; }}
-            .timestamp {{ float: right; font-size: 0.9em; color: #666; }}
-            .projects {{ margin: 10px 0; }}
-            .project-item {{ padding: 10px; margin: 5px 0; border-radius: 5px; background-color: #f8f9fa; border: 1px solid #e9ecef; }}
-            .project-links {{ margin-top: 5px; }}
-            .project-links a {{ font-size: 0.9em; margin-right: 10px; padding: 5px 10px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🧑‍🍳 Garcon</h1>
-                <p>Zero-Downtime Docker Deployment with Blue-Green Strategy</p>
-            </div>
-            
-            <div class="status running">
-                <strong>✓ Garcon is running!</strong><br>
-                Ready for blue-green deployments with comprehensive logging and zero downtime.
-            </div>
-            
-            {deployment_html}
-            
-            {projects_html}
-            
-            <div class="info">
-                <h3>Blue-Green Deployment Features:</h3>
-                <ul>
-                    <li>Zero-downtime deployments using blue-green strategy</li>
-                    <li>Automatic health checks before traffic switching</li>
-                    <li>UUID-tagged containers for precise management</li>
-                    <li>Automatic cleanup of old containers</li>
-                    <li>Comprehensive logging with rotation</li>
-                    <li>Rollback capabilities on health check failures</li>
-                </ul>
-            </div>
-            
-            <div class="links">
-                <h3>Quick Links:</h3>
-                <a href="/projects">View All Projects</a>
-                <a href="/deployments">Deployment History</a>
-                <a href="http://localhost:8080" target="_blank">Traefik Dashboard</a>
-                <a href="/logs">View Logs</a>
-            </div>
-            
-            <div class="info">
-                <h3>API Endpoints:</h3>
-                <p><span class="endpoint">POST /webhook</span> - GitHub webhook endpoint (triggers blue-green deployment)</p>
-                <p><span class="endpoint">GET /projects</span> - List all deployed projects</p>
-                <p><span class="endpoint">GET /projects/&lt;name&gt;/urls</span> - Get project URLs</p>
-                <p><span class="endpoint">GET /projects/&lt;name&gt;/deployments</span> - Get deployment history</p>
-                <p><span class="endpoint">POST /projects/&lt;name&gt;/deploy</span> - Manual deployment trigger</p>
-                <p><span class="endpoint">GET /deployments</span> - Recent deployments across all projects</p>
-            </div>
-            
-            <div class="info">
-                <h3>Blue-Green Deployment Process:</h3>
-                <ol>
-                    <li>Receive GitHub webhook or manual trigger</li>
-                    <li>Clone/update repository with comprehensive logging</li>
-                    <li>Build new containers with UUID tags (Green)</li>
-                    <li>Perform health checks on new containers</li>
-                    <li>Switch Traefik traffic to healthy containers</li>
-                    <li>Cleanup old containers (Blue) after successful switch</li>
-                    <li>Log all steps with detailed error information</li>
-                </ol>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return html
+    """Redirect to dashboard."""
+    return redirect(url_for('main.dashboard'))
 
 
 @bp.route("/projects")
@@ -430,17 +702,46 @@ def manual_deploy(project_name):
         container_id = None
         deployment_uuid = None
         
-        for line in result.stdout.strip().split('\n'):
+        # Parse both stdout and stderr for the output markers
+        full_output = result.stdout + "\n" + result.stderr
+        
+        for line in full_output.strip().split('\n'):
+            line = line.strip()
             if line.startswith("CONTAINER_ID:"):
                 container_id = line.split(':', 1)[1].strip()
+                logging.info(f"Manual deployment extracted container ID: {container_id}")
             elif line.startswith("DEPLOYMENT_UUID:"):
                 deployment_uuid = line.split(':', 1)[1].strip()
+                logging.info(f"Manual deployment extracted UUID: {deployment_uuid}")
+        
+        # If we can't extract from output, try to get from log file
+        if not container_id or not deployment_uuid:
+            logging.warning("Manual deployment: Could not extract container ID or UUID from script output")
+            current_dir = Path(__file__).parent.parent
+            log_file_path = current_dir / "logs" / "deploy.log"
+            try:
+                with open(log_file_path, 'r') as log_file:
+                    log_lines = log_file.readlines()[-50:]  # Check last 50 lines
+                    for line in log_lines:
+                        if "Primary container deployed:" in line and not container_id:
+                            parts = line.split("Primary container deployed:")
+                            if len(parts) > 1:
+                                container_id = parts[1].strip()
+                                logging.info(f"Manual deployment extracted container ID from log: {container_id}")
+                        elif "Deployment UUID:" in line and not deployment_uuid:
+                            parts = line.split("Deployment UUID:")
+                            if len(parts) > 1:
+                                deployment_uuid = parts[1].strip()
+                                logging.info(f"Manual deployment extracted UUID from log: {deployment_uuid}")
+            except Exception as log_e:
+                logging.warning(f"Manual deployment: Could not read deploy log: {log_e}")
         
         # Log successful deployment
         service.log_deployment_status(
             project['id'], 
             'success',
             container_id=container_id,
+            deployment_uuid=deployment_uuid,
             deployment_type=deployment_type
         )
         

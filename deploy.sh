@@ -113,11 +113,17 @@ else
     fi
 fi
 
-# Check if docker-compose.yml exists and modify it for Traefik
-COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
-if [ -f "$COMPOSE_FILE" ]; then
+# Check if docker-compose.yml or docker-compose.yaml exists and modify it for Traefik
+COMPOSE_FILE=""
+if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
+    COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
     log "INFO" "Found docker-compose.yml, modifying for Traefik integration"
-    
+elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
+    COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
+    log "INFO" "Found docker-compose.yaml, modifying for Traefik integration"
+fi
+
+if [ -n "$COMPOSE_FILE" ]; then
     # Use Python to modify the compose file
     PYTHON_EXEC="python3" # Default to system python
     if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
@@ -134,13 +140,13 @@ modifier = DockerComposeModifier('$COMPOSE_FILE', '$REPO_NAME')
 success = modifier.modify_compose_file()
 sys.exit(0 if success else 1)
 "; then
-        log "INFO" "Successfully modified docker-compose.yml for Traefik"
+        log "INFO" "Successfully modified docker-compose file for Traefik"
     else
-        log "ERROR" "Failed to modify docker-compose.yml for Traefik"
+        log "ERROR" "Failed to modify docker-compose file for Traefik"
         exit 1
     fi
 else
-    log "WARNING" "No docker-compose.yml found in repository $REPO_NAME"
+    log "WARNING" "No docker-compose.yml or docker-compose.yaml found in repository $REPO_NAME"
     log "INFO" "Skipping Traefik integration for $REPO_NAME"
     exit 0
 fi

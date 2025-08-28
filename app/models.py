@@ -97,6 +97,24 @@ class DatabaseManager:
             logging.error(f"Error fetching project {repo_name}: {e}")
             return None
     
+    def get_project_by_id(self, project_id):
+        """Get project information by project ID."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row  # Enable column access by name
+                cursor = conn.cursor()
+                
+                cursor.execute(
+                    'SELECT * FROM projects WHERE id = ?', 
+                    (project_id,)
+                )
+                result = cursor.fetchone()
+                return dict(result) if result else None
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching project with ID {project_id}: {e}")
+            return None
+    
     def add_or_update_project(self, repo_name, repo_url, local_path=None, container_id=None, deployment_uuid=None):
         """Add a new project or update an existing one."""
         try:
@@ -208,6 +226,28 @@ class DatabaseManager:
             logging.error(f"Error fetching all projects: {e}")
             return []
 
+    def get_project_count(self):
+        """Get the total count of projects."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(*) FROM projects')
+                return cursor.fetchone()[0]
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching project count: {e}")
+            return 0
+
+    def get_deployment_count(self):
+        """Get the total count of deployments."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(*) FROM deployments')
+                return cursor.fetchone()[0]
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching deployment count: {e}")
+            return 0
+
     def update_project_container_id(self, project_id, container_id):
         """Update the container_id for a specific project."""
         try:
@@ -221,7 +261,10 @@ class DatabaseManager:
                 ''', (container_id, project_id))
                 
                 conn.commit()
-                logging.info(f"Updated container ID for project ID {project_id}")
+                if container_id:
+                    logging.info(f"Updated container ID for project ID {project_id}: {container_id}")
+                else:
+                    logging.info(f"Cleared container ID for project ID {project_id}")
                 
         except sqlite3.Error as e:
             logging.error(f"Error updating container ID for project {project_id}: {e}")
