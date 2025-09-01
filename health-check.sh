@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Health check script for containers
 # This can be used as a Docker health check command
 

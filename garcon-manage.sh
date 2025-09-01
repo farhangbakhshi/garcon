@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Garcon Deployment Management Script
 # This script provides utilities for managing zero-downtime deployments
 

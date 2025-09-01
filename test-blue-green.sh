@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Test script for blue-green deployment functionality
 # This script creates a simple test scenario to demonstrate zero-downtime deployment
 

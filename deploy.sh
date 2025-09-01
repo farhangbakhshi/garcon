@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 REPO_URL="$1"
 DEPLOYMENT_TYPE="${2:-blue-green}"  # Default to blue-green deployment

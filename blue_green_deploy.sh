@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 REPO_URL="$1"
 BASE_DIR="$(dirname "$0")/projects_data"

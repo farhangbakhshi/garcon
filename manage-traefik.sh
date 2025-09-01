@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 LOG_DIR="$(pwd)/logs"
 LOG_FILE="$LOG_DIR/deploy.log"
