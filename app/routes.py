@@ -801,44 +801,7 @@ def view_logs():
         else:
             deploy_logs = "Deployment log file not found."
         
-        html = f"""
-        <html>
-        <head>
-            <title>Garcon - Logs</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
-                .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
-                .log-section {{ margin: 20px 0; }}
-                .log-content {{ background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 5px; padding: 15px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 10px; padding: 8px 16px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px; }}
-                h2 {{ color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="nav">
-                    <a href="/">← Back to Dashboard</a>
-                    <a href="/projects">Projects</a>
-                    <a href="/deployments">Deployments</a>
-                </div>
-                
-                <h1>🧑‍🍳 Garcon Logs</h1>
-                
-                <div class="log-section">
-                    <h2>Recent Application Logs (Last 50 lines)</h2>
-                    <div class="log-content">{app_logs}</div>
-                </div>
-                
-                <div class="log-section">
-                    <h2>Recent Deployment Logs (Last 100 lines)</h2>
-                    <div class="log-content">{deploy_logs}</div>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        return html
+        return render_template('logs_viewer.html', app_logs=app_logs, deploy_logs=deploy_logs)
         
     except Exception as e:
         logging.error(f"Error viewing logs: {str(e)}")
