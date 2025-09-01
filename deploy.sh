@@ -1,6 +1,8 @@
 #!/bin/bash
 
+# Enhanced error handling with strict mode and trap functions
 set -euo pipefail
+IFS=$'\n\t'
 
 REPO_URL="$1"
 DEPLOYMENT_TYPE="${2:-blue-green}"  # Default to blue-green deployment
@@ -11,6 +13,18 @@ SCRIPT_DIR="$(dirname "$0")"
 
 # Create logs directory if it doesn't exist
 mkdir -p "$LOG_DIR"
+
+# Enhanced error handling functions
+error_exit() {
+    local line_no=$1
+    local error_code=${2:-1}
+    log "ERROR" "Simple deployment script failed at line $line_no with exit code $error_code"
+    exit "$error_code"
+}
+
+# Set up error trap
+trap 'error_exit $LINENO $?' ERR
+trap 'log "WARNING" "Simple deployment script interrupted by signal"; exit 130' INT TERM
 
 # Enhanced logging function with better output handling
 log() {

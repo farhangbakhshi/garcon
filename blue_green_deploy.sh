@@ -1,7 +1,10 @@
 #!/bin/bash
 
+# Enhanced error handling with strict mode and trap functions
 set -euo pipefail
+IFS=$'\n\t'
 
+# Global configuration
 REPO_URL="$1"
 BASE_DIR="$(dirname "$0")/projects_data"
 LOG_DIR="$(pwd)/logs"
@@ -10,6 +13,64 @@ SCRIPT_DIR="$(dirname "$0")"
 
 # Create logs directory if it doesn't exist
 mkdir -p "$LOG_DIR"
+
+# Enhanced error handling functions
+error_exit() {
+    local line_no=$1
+    local error_code=${2:-1}
+    log "ERROR" "Script failed at line $line_no with exit code $error_code"
+    log "ERROR" "Call stack: ${FUNCNAME[*]}"
+    cleanup_on_error
+    exit "$error_code"
+}
+
+# Cleanup function for error scenarios
+cleanup_on_error() {
+    log "WARNING" "Performing emergency cleanup due to error"
+    
+    # Remove any temporary files
+    if [ -n "${TEMP_COMPOSE_FILE:-}" ] && [ -f "$TEMP_COMPOSE_FILE" ]; then
+        rm -f "$TEMP_COMPOSE_FILE"
+        log "INFO" "Removed temporary compose file: $TEMP_COMPOSE_FILE"
+    fi
+    
+    # Stop any containers that were started but failed health checks
+    if [ -n "${NEW_CONTAINERS:-}" ]; then
+        for container in $NEW_CONTAINERS; do
+            if docker ps --format "{{.Names}}" | grep -q "^$container$"; then
+                log "WARNING" "Stopping failed container: $container"
+                docker stop "$container" >/dev/null 2>&1 || true
+                docker rm "$container" >/dev/null 2>&1 || true
+            fi
+        done
+    fi
+}
+
+# Set up error trap
+trap 'error_exit $LINENO $?' ERR
+trap 'log "WARNING" "Script interrupted by signal"; cleanup_on_error; exit 130' INT TERM
+
+# Validate prerequisites
+validate_prerequisites() {
+    local missing_tools=()
+    
+    command -v docker >/dev/null 2>&1 || missing_tools+=("docker")
+    command -v git >/dev/null 2>&1 || missing_tools+=("git")
+    command -v python3 >/dev/null 2>&1 || missing_tools+=("python3")
+    
+    if [ ${#missing_tools[@]} -ne 0 ]; then
+        log "ERROR" "Missing required tools: ${missing_tools[*]}"
+        exit 1
+    fi
+    
+    # Check Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        log "ERROR" "Docker daemon is not running or accessible"
+        exit 1
+    fi
+    
+    log "INFO" "Prerequisites validation passed"
+}
 
 # Enhanced logging function with log levels and file output
 log() {
@@ -132,6 +193,9 @@ main() {
         echo "Usage: $0 <repository_url>"
         exit 1
     fi
+
+    # Validate prerequisites before starting
+    validate_prerequisites
 
     REPO_NAME=$(basename -s .git "$REPO_URL")
     TARGET_DIR="$BASE_DIR/$REPO_NAME"
@@ -399,8 +463,7 @@ except Exception as e:
     log "INFO" "Deployment UUID: $DEPLOYMENT_UUID"
 }
 
-# Error handling wrapper
-trap 'log "ERROR" "Deployment script encountered an error at line $LINENO"' ERR
-
-# Run main function
-main "$@"
+# Run main function with enhanced error handling
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

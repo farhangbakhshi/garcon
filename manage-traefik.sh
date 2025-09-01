@@ -1,9 +1,23 @@
 #!/bin/bash
 
+# Enhanced error handling with strict mode
 set -euo pipefail
+IFS=$'\n\t'
 
 LOG_DIR="$(pwd)/logs"
 LOG_FILE="$LOG_DIR/deploy.log"
+
+# Enhanced error handling functions
+error_exit() {
+    local line_no=$1
+    local error_code=${2:-1}
+    log "ERROR" "Traefik management script failed at line $line_no with exit code $error_code"
+    exit "$error_code"
+}
+
+# Set up error trap
+trap 'error_exit $LINENO $?' ERR
+trap 'log "WARNING" "Traefik management script interrupted by signal"; exit 130' INT TERM
 
 # Logging function
 log() {
