@@ -265,13 +265,12 @@ main() {
     fi
 
     # Check if docker-compose.yml or docker-compose.yaml exists
-    COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
-    COMPOSE_FILE_YAML="$TARGET_DIR/docker-compose.yaml"
-    
-    if [ -f "$COMPOSE_FILE" ]; then
+    COMPOSE_FILE=""
+    if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
+        COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
         log "INFO" "Found docker-compose.yml in repository $REPO_NAME"
-    elif [ -f "$COMPOSE_FILE_YAML" ]; then
-        COMPOSE_FILE="$COMPOSE_FILE_YAML"
+    elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
+        COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
         log "INFO" "Found docker-compose.yaml in repository $REPO_NAME"
     else
         log "ERROR" "No docker-compose.yml or docker-compose.yaml found in repository $REPO_NAME"
@@ -281,10 +280,10 @@ main() {
 
     # Backup original compose file
     cp "$COMPOSE_FILE" "$COMPOSE_FILE.backup"
-    log "INFO" "Created backup of docker-compose.yml"
+    log "INFO" "Created backup of $(basename "$COMPOSE_FILE")"
 
     # Modify compose file for Traefik integration
-    log "INFO" "Modifying docker-compose.yml for Traefik integration"
+    log "INFO" "Modifying $(basename "$COMPOSE_FILE") for Traefik integration"
     
     PYTHON_EXEC="python3"
     if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
