@@ -90,6 +90,9 @@ fi
 mkdir -p "$BASE_DIR"
 log "INFO" "Created base directory: $BASE_DIR"
 
+# Track if this is a fresh clone
+IS_FRESH_CLONE=false
+
 if [ -d "$TARGET_DIR/.git" ]; then
     log "INFO" "Existing repository found, pulling latest changes"
     cd "$TARGET_DIR"
@@ -112,6 +115,7 @@ elif [ -d "$TARGET_DIR" ]; then
     if run_with_logging "Git clone operation" git clone "$REPO_URL" "$TARGET_DIR"; then
         log "INFO" "Successfully cloned repository"
         cd "$TARGET_DIR"
+        IS_FRESH_CLONE=true
     else
         log "ERROR" "Failed to clone repository"
         exit 1
@@ -121,32 +125,34 @@ else
     if run_with_logging "Git clone operation" git clone "$REPO_URL" "$TARGET_DIR"; then
         log "INFO" "Successfully cloned repository"
         cd "$TARGET_DIR"
+        IS_FRESH_CLONE=true
     else
         log "ERROR" "Failed to clone repository"
         exit 1
     fi
 fi
 
-# Check if docker-compose.yml or docker-compose.yaml exists and modify it for Traefik
+# Check if docker-compose.yml or docker-compose.yaml exists and modify it for Traefik (only for fresh clones)
 COMPOSE_FILE=""
 if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
-    log "INFO" "Found docker-compose.yml, modifying for Traefik integration"
+    log "INFO" "Found docker-compose.yml, checking if modification needed"
 elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
-    log "INFO" "Found docker-compose.yaml, modifying for Traefik integration"
+    log "INFO" "Found docker-compose.yaml, checking if modification needed"
 fi
 
 if [ -n "$COMPOSE_FILE" ]; then
-    # Use Python to modify the compose file
-    PYTHON_EXEC="python3" # Default to system python
-    if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
-        PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
-    elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
-        PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
-    fi
+    if [ "$IS_FRESH_CLONE" = "true" ]; then
+        # Use Python to modify the compose file
+        PYTHON_EXEC="python3" # Default to system python
+        if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
+            PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
+        elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
+            PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
+        fi
 
-    if run_with_logging "Docker Compose Traefik modification" "$PYTHON_EXEC" -c "
+        if run_with_logging "Docker Compose Traefik modification" "$PYTHON_EXEC" -c "
 import sys
 sys.path.append('$SCRIPT_DIR')
 from app.traefik_utils import DockerComposeModifier
@@ -154,10 +160,13 @@ modifier = DockerComposeModifier('$COMPOSE_FILE', '$REPO_NAME')
 success = modifier.modify_compose_file()
 sys.exit(0 if success else 1)
 "; then
-        log "INFO" "Successfully modified docker-compose file for Traefik"
+            log "INFO" "Successfully modified docker-compose file for Traefik"
+        else
+            log "ERROR" "Failed to modify docker-compose file for Traefik"
+            exit 1
+        fi
     else
-        log "ERROR" "Failed to modify docker-compose file for Traefik"
-        exit 1
+        log "INFO" "Repository already exists, skipping Traefik modification of $(basename "$COMPOSE_FILE")"
     fi
 else
     log "WARNING" "No docker-compose.yml or docker-compose.yaml found in repository $REPO_NAME"

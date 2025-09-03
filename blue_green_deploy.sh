@@ -218,6 +218,9 @@ main() {
     mkdir -p "$BASE_DIR"
     log "INFO" "Created base directory: $BASE_DIR"
 
+    # Track if this is a fresh clone
+    IS_FRESH_CLONE=false
+
     # Git operations
     if [ -d "$TARGET_DIR/.git" ]; then
         log "INFO" "Existing repository found, pulling latest changes"
@@ -246,6 +249,7 @@ main() {
             log "INFO" "Successfully cloned repository"
             echo "$git_output" >> "$LOG_FILE"
             cd "$TARGET_DIR"
+            IS_FRESH_CLONE=true
         else
             log "ERROR" "Failed to clone repository: $git_output"
             echo "$git_output" >> "$LOG_FILE"
@@ -257,6 +261,7 @@ main() {
             log "INFO" "Successfully cloned repository"
             echo "$git_output" >> "$LOG_FILE"
             cd "$TARGET_DIR"
+            IS_FRESH_CLONE=true
         else
             log "ERROR" "Failed to clone repository: $git_output"
             echo "$git_output" >> "$LOG_FILE"
@@ -282,17 +287,18 @@ main() {
     cp "$COMPOSE_FILE" "$COMPOSE_FILE.backup"
     log "INFO" "Created backup of $(basename "$COMPOSE_FILE")"
 
-    # Modify compose file for Traefik integration
-    log "INFO" "Modifying $(basename "$COMPOSE_FILE") for Traefik integration"
-    
-    PYTHON_EXEC="python3"
-    if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
-        PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
-    elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
-        PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
-    fi
+    # Modify compose file for Traefik integration (only for fresh clones)
+    if [ "$IS_FRESH_CLONE" = "true" ]; then
+        log "INFO" "Modifying $(basename "$COMPOSE_FILE") for Traefik integration"
+        
+        PYTHON_EXEC="python3"
+        if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
+            PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
+        elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
+            PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
+        fi
 
-    if python_output=$("$PYTHON_EXEC" -c "
+        if python_output=$("$PYTHON_EXEC" -c "
 import sys
 sys.path.append('$SCRIPT_DIR')
 from app.traefik_utils import DockerComposeModifier
@@ -300,12 +306,15 @@ modifier = DockerComposeModifier('$COMPOSE_FILE', '$REPO_NAME')
 success = modifier.modify_compose_file()
 sys.exit(0 if success else 1)
 " 2>&1); then
-        log "INFO" "Successfully modified docker-compose.yml for Traefik"
-        echo "$python_output" >> "$LOG_FILE"
+            log "INFO" "Successfully modified docker-compose.yml for Traefik"
+            echo "$python_output" >> "$LOG_FILE"
+        else
+            log "ERROR" "Failed to modify docker-compose.yml: $python_output"
+            echo "$python_output" >> "$LOG_FILE"
+            exit 1
+        fi
     else
-        log "ERROR" "Failed to modify docker-compose.yml: $python_output"
-        echo "$python_output" >> "$LOG_FILE"
-        exit 1
+        log "INFO" "Repository already exists, skipping Traefik modification of $(basename "$COMPOSE_FILE")"
     fi
 
     # Blue-Green Deployment Process
