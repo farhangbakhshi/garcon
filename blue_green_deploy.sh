@@ -346,8 +346,16 @@ try:
             elif isinstance(service_config['labels'], dict):
                 service_config['labels']['project'] = '$REPO_NAME'
             
-            # Set container name with UUID
-            service_config['container_name'] = f'{service_name}-$DEPLOYMENT_UUID'
+            # Handle services with deploy.replicas differently
+            if 'deploy' in service_config and 'replicas' in service_config['deploy']:
+                # For services with replicas, remove deploy section and set container name
+                # This allows blue-green deployment to work with container_name
+                del service_config['deploy']
+                service_config['container_name'] = f'{service_name}-$DEPLOYMENT_UUID'
+                print(f'Removed deploy.replicas from service {service_name} for blue-green deployment')
+            else:
+                # For regular services, set container name normally
+                service_config['container_name'] = f'{service_name}-$DEPLOYMENT_UUID'
     
     with open('$TEMP_COMPOSE_FILE', 'w') as f:
         yaml.dump(compose_data, f, default_flow_style=False, sort_keys=False)
