@@ -131,6 +131,14 @@ check_container_health() {
         # Get container health status
         health_status=$(docker inspect --format='{{.State.Health.Status}}' "$container_name" 2>/dev/null || echo "no-health-check")
         
+        # Check if healthcheck is explicitly disabled
+        healthcheck_disabled=$(docker inspect --format='{{index .Config.Labels "healthcheck.disabled"}}' "$container_name" 2>/dev/null || echo "")
+        
+        if [ "$healthcheck_disabled" = "true" ]; then
+            log "INFO" "Healthcheck disabled for container $container_name, skipping health check"
+            return 0
+        fi
+        
         if [ "$health_status" = "healthy" ]; then
             log "INFO" "Container $container_name is healthy"
             return 0

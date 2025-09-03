@@ -188,6 +188,13 @@ class DockerComposeModifier:
         service_config['labels'].extend(traefik_labels)
         self.logger.debug(f"Added {len(traefik_labels)} Traefik labels to {service_name}")
         
+        # Disable healthcheck if not already defined
+        if 'healthcheck' not in service_config:
+            service_config['healthcheck'] = {'disable': True}
+            # Add a label to indicate healthcheck is disabled
+            service_config['labels'].append('healthcheck.disabled=true')
+            self.logger.debug(f"Disabled healthcheck for {service_name}")
+        
     def _extract_and_remove_ports(self, service_config: Dict[str, Any]) -> list:
         """Extract port information and remove ports section to avoid conflicts."""
         exposed_ports = []
