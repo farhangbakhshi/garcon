@@ -37,51 +37,58 @@ function initializeDeploymentButtons() {
     deployButtons.forEach(button => {
         button.addEventListener('click', handleDeployment);
     });
+    
+    // Add event listener for confirm deploy button using event delegation
+    document.addEventListener('click', function(event) {
+        if (event.target.id === 'confirmDeploy' || event.target.closest('#confirmDeploy')) {
+            event.preventDefault();
+            const modal = document.getElementById('deployModal');
+            const projectId = parseInt(modal.dataset.projectId);
+            const deploymentType = document.getElementById('deploymentType').value;
+            
+            // Hide modal
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+            
+            // Start deployment
+            startDeployment(projectId, deploymentType);
+        }
+    });
 }
 
 // Handle deployment button clicks
 function handleDeployment(event) {
     const button = event.target.closest('.deploy-btn');
     const projectId = button.dataset.projectId;
+    const projectName = button.dataset.project;
     const deploymentType = button.dataset.deploymentType || 'blue-green';
     
     // Show confirmation modal
-    showDeploymentModal(projectId, deploymentType);
+    showDeploymentModal(projectId, projectName, deploymentType);
 }
 
 // Show deployment confirmation modal
-function showDeploymentModal(projectId, deploymentType) {
-    const modal = document.getElementById('deploymentModal');
-    const projectName = document.querySelector(`[data-project-id="${projectId}"]`).dataset.projectName;
+function showDeploymentModal(projectId, projectName, deploymentType) {
+    const modal = document.getElementById('deployModal');
     
     // Update modal content
-    document.getElementById('deploymentModalLabel').textContent = `Deploy ${projectName}`;
-    document.getElementById('deploymentProjectName').textContent = projectName;
-    document.getElementById('deploymentType').textContent = deploymentType;
+    document.getElementById('deploy-project-name').textContent = projectName;
+    document.getElementById('deploymentType').value = deploymentType;
     
-    // Set form data
-    document.getElementById('deployProjectId').value = projectId;
-    document.getElementById('deployDeploymentType').value = deploymentType;
+    // Store project ID for later use
+    modal.dataset.projectId = projectId;
     
     // Show modal
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
 }
 
-// Handle deployment form submission
-function submitDeployment(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    const projectId = formData.get('project_id');
-    const deploymentType = formData.get('deployment_type');
-    
-    // Show loading state
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalText = submitButton.innerHTML;
-    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deploying...';
-    submitButton.disabled = true;
+// Start deployment process
+function startDeployment(projectId, deploymentType) {
+    // Show loading notification
+    showNotification('Starting deployment...', 'info');
     
     // Make deployment request
     fetch('/deploy', {
@@ -99,9 +106,7 @@ function submitDeployment(event) {
     .then(data => {
         if (data.success) {
             showNotification('Deployment started successfully!', 'success');
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('deploymentModal')).hide();
-            // Refresh page or update deployment status
+            // Refresh page after a delay to show updated status
             setTimeout(() => location.reload(), 2000);
         } else {
             showNotification(data.error || 'Deployment failed', 'danger');
@@ -110,11 +115,6 @@ function submitDeployment(event) {
     .catch(error => {
         console.error('Deployment error:', error);
         showNotification('Network error during deployment', 'danger');
-    })
-    .finally(() => {
-        // Restore button state
-        submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
     });
 }
 
@@ -297,9 +297,7 @@ function validateProjectForm(form) {
 document.addEventListener('submit', function(event) {
     const form = event.target;
     
-    if (form.id === 'deploymentForm') {
-        submitDeployment(event);
-    } else if (form.id === 'addProjectForm') {
+    if (form.id === 'addProjectForm') {
         if (!validateProjectForm(form)) {
             event.preventDefault();
         }
