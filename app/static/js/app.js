@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTooltips();
     initializeModals();
     initializeDeploymentButtons();
+    initializeDeleteConfirmation();
     initializeWebSocket();
 });
 
@@ -337,6 +338,63 @@ function toggleLogAutoRefresh() {
         button.classList.remove('btn-outline-info');
         button.classList.add('btn-success');
     }
+}
+
+// Initialize delete confirmation
+function initializeDeleteConfirmation() {
+    const deleteConfirmationInput = document.getElementById('deleteConfirmation');
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    
+    if (deleteConfirmationInput && confirmDeleteBtn) {
+        const projectName = deleteConfirmationInput.dataset.projectName;
+        
+        deleteConfirmationInput.addEventListener('input', function() {
+            const enteredText = this.value.trim();
+            confirmDeleteBtn.disabled = enteredText !== projectName;
+        });
+        
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteProject(projectName);
+        });
+    }
+}
+
+// Delete project function
+function deleteProject(projectName) {
+    // Show loading state
+    const confirmBtn = document.getElementById('confirmDelete');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+    confirmBtn.disabled = true;
+    
+    // Make delete request
+    fetch(`/projects/${projectName}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Project deleted successfully!', 'success');
+            // Redirect to projects page after a delay
+            setTimeout(() => {
+                window.location.href = '/projects_ui';
+            }, 2000);
+        } else {
+            showNotification(data.error || 'Failed to delete project', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        showNotification('Network error during project deletion', 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        confirmBtn.innerHTML = originalText;
+        confirmBtn.disabled = false;
+    });
 }
 
 // Cleanup on page unload

@@ -655,121 +655,104 @@ def get_recent_deployments():
         return jsonify(error="Failed to retrieve recent deployments"), 500
 
 
-@bp.route("/projects/<project_name>/deploy", methods=["POST"])
-def manual_deploy(project_name):
-    """Manually trigger deployment for a project."""
+@bp.route("/projects/<project_name>/delete", methods=["DELETE"])
+def delete_project(project_name):
+    """Delete a project completely."""
     try:
-        data = request.get_json() if request.is_json else {}
-        deployment_type = data.get('type', 'blue-green')  # Default to blue-green
-        
-        logging.info(f"Manual deployment triggered for {project_name} using {deployment_type} strategy")
-        
         service = services.Services()
         project = service.db.get_project_by_repo_name(project_name)
         
         if not project:
-            return jsonify(error="Project not found"), 404
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(success=False, error='Project not found'), 404
+            flash('Project not found', 'error')
+            return redirect(url_for('main.projects_ui'))
         
-        # Use the project's repo URL for deployment
-        repo_url = project['repo_url']
+        project_id = project['id']
+        logging.info(f"Starting deletion of project: {project_name} (ID: {project_id})")
         
-        # Log deployment attempt
-        service.log_deployment_status(
-            project['id'], 
-            'started',
-            deployment_type=deployment_type
-        )
+        # Stop and remove all containers for this project
+        try:
+            import subprocess
+            from pathlib import Path
+            
+            # Get all containers with the project label
+            result = subprocess.run(
+                ['docker', 'ps', '-a', '--filter', f'label=project={project_name}', '--format', '{{.Names}}'],
+                capture_output=True, text=True, timeout=30
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                container_names = result.stdout.strip().split('\n')
+                logging.info(f"Found containers to remove: {container_names}")
+                
+                for container_name in container_names:
+                    if container_name.strip():
+                        # Stop container if running
+                        subprocess.run(['docker', 'stop', container_name], 
+                                     capture_output=True, timeout=30)
+                        # Remove container
+                        subprocess.run(['docker', 'rm', container_name], 
+                                     capture_output=True, timeout=30)
+                        logging.info(f"Removed container: {container_name}")
+            else:
+                logging.info(f"No containers found for project: {project_name}")
+                
+        except subprocess.TimeoutExpired:
+            logging.warning(f"Timeout while stopping containers for project: {project_name}")
+        except Exception as e:
+            logging.error(f"Error stopping containers for project {project_name}: {str(e)}")
         
-        # Choose deployment script based on type
-        current_dir = Path(__file__).parent.parent
-        if deployment_type == 'blue-green':
-            deploy_script = current_dir / "blue_green_deploy.sh"
-        else:
-            deploy_script = current_dir / "deploy.sh"
-        
-        logging.info(f"Using deployment script: {deploy_script}")
-        
-        # Run deployment
-        result = subprocess.run(
-            [str(deploy_script), repo_url], 
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=600
-        )
-        
-        # Extract information from deployment output
-        container_id = None
-        deployment_uuid = None
-        
-        # Parse both stdout and stderr for the output markers
-        full_output = result.stdout + "\n" + result.stderr
-        
-        for line in full_output.strip().split('\n'):
-            line = line.strip()
-            if line.startswith("CONTAINER_ID:"):
-                container_id = line.split(':', 1)[1].strip()
-                logging.info(f"Manual deployment extracted container ID: {container_id}")
-            elif line.startswith("DEPLOYMENT_UUID:"):
-                deployment_uuid = line.split(':', 1)[1].strip()
-                logging.info(f"Manual deployment extracted UUID: {deployment_uuid}")
-        
-        # If we can't extract from output, try to get from log file
-        if not container_id or not deployment_uuid:
-            logging.warning("Manual deployment: Could not extract container ID or UUID from script output")
+        # Remove project files from projects_data directory
+        try:
             current_dir = Path(__file__).parent.parent
-            log_file_path = current_dir / "logs" / "deploy.log"
-            try:
-                with open(log_file_path, 'r') as log_file:
-                    log_lines = log_file.readlines()[-50:]  # Check last 50 lines
-                    for line in log_lines:
-                        if "Primary container deployed:" in line and not container_id:
-                            parts = line.split("Primary container deployed:")
-                            if len(parts) > 1:
-                                container_id = parts[1].strip()
-                                logging.info(f"Manual deployment extracted container ID from log: {container_id}")
-                        elif "Deployment UUID:" in line and not deployment_uuid:
-                            parts = line.split("Deployment UUID:")
-                            if len(parts) > 1:
-                                deployment_uuid = parts[1].strip()
-                                logging.info(f"Manual deployment extracted UUID from log: {deployment_uuid}")
-            except Exception as log_e:
-                logging.warning(f"Manual deployment: Could not read deploy log: {log_e}")
+            project_dir = current_dir / "projects_data" / project_name
+            
+            if project_dir.exists():
+                import shutil
+                shutil.rmtree(project_dir)
+                logging.info(f"Removed project directory: {project_dir}")
+            else:
+                logging.info(f"Project directory not found: {project_dir}")
+                
+        except Exception as e:
+            logging.error(f"Error removing project directory for {project_name}: {str(e)}")
         
-        # Log successful deployment
-        service.log_deployment_status(
-            project['id'], 
-            'success',
-            container_id=container_id,
-            deployment_uuid=deployment_uuid,
-            deployment_type=deployment_type
-        )
+        # Delete all deployment history for this project
+        try:
+            service.db.delete_deployment_history(project_id)
+            logging.info(f"Deleted deployment history for project: {project_name}")
+        except Exception as e:
+            logging.error(f"Error deleting deployment history for project {project_name}: {str(e)}")
         
-        logging.info(f"Manual {deployment_type} deployment completed for {project_name}")
+        # Delete the project from database
+        try:
+            service.db.delete_project(project_id)
+            logging.info(f"Deleted project from database: {project_name}")
+        except Exception as e:
+            logging.error(f"Error deleting project {project_name} from database: {str(e)}")
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(success=False, error='Failed to delete project from database'), 500
+            flash('Failed to delete project from database', 'error')
+            return redirect(url_for('main.projects_ui'))
         
-        return jsonify(
-            message=f"Manual {deployment_type} deployment completed successfully",
-            repository=project_name,
-            project_id=project['id'],
-            container_id=container_id,
-            deployment_uuid=deployment_uuid,
-            deployment_type=deployment_type
-        ), 200
+        logging.info(f"Successfully deleted project: {project_name}")
         
-    except subprocess.TimeoutExpired:
-        error_msg = "Manual deployment timed out"
-        logging.error(error_msg)
-        service.log_deployment_status(project['id'], 'failed', error_message=error_msg)
-        return jsonify(error=error_msg), 500
-    except subprocess.CalledProcessError as e:
-        error_msg = f"Manual deployment failed: {e.stderr if e.stderr else str(e)}"
-        logging.error(error_msg)
-        service.log_deployment_status(project['id'], 'failed', error_message=error_msg)
-        return jsonify(error="Manual deployment failed", details=error_msg), 500
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=True, message=f'Project {project_name} deleted successfully')
+        
+        flash(f'Project {project_name} deleted successfully', 'success')
+        return redirect(url_for('main.projects_ui'))
+        
     except Exception as e:
-        error_msg = f"Unexpected error during manual deployment: {str(e)}"
+        error_msg = f"Error deleting project {project_name}: {str(e)}"
         logging.error(error_msg, exc_info=True)
-        return jsonify(error="Internal server error"), 500
+        
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, error=error_msg), 500
+        
+        flash('Error deleting project', 'error')
+        return redirect(url_for('main.project_detail', project_name=project_name))
 
 
 @bp.route("/logs")

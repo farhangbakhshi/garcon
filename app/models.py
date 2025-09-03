@@ -268,3 +268,42 @@ class DatabaseManager:
                 
         except sqlite3.Error as e:
             logging.error(f"Error updating container ID for project {project_id}: {e}")
+    
+    def delete_project(self, project_id):
+        """Delete a project from the database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('DELETE FROM projects WHERE id = ?', (project_id,))
+                deleted_count = cursor.rowcount
+                
+                conn.commit()
+                if deleted_count > 0:
+                    logging.info(f"Deleted project with ID {project_id} from database")
+                else:
+                    logging.warning(f"No project found with ID {project_id} to delete")
+                
+                return deleted_count > 0
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error deleting project {project_id}: {e}")
+            return False
+    
+    def delete_deployment_history(self, project_id):
+        """Delete all deployment history for a project."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('DELETE FROM deployments WHERE project_id = ?', (project_id,))
+                deleted_count = cursor.rowcount
+                
+                conn.commit()
+                logging.info(f"Deleted {deleted_count} deployment records for project ID {project_id}")
+                
+                return deleted_count
+                
+        except sqlite3.Error as e:
+            logging.error(f"Error deleting deployment history for project {project_id}: {e}")
+            return 0

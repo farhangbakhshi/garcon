@@ -22,11 +22,16 @@
                 <i class="bi bi-folder"></i> {{ project.repo_name }}
             </h1>
             <div>
-                <button class="btn btn-success deploy-btn" 
+                <button class="btn btn-success deploy-btn me-2" 
                         data-project="{{ project.repo_name }}"
                         data-project-id="{{ project.id }}"
                         data-repo-url="{{ project.repo_url }}">
                     <i class="bi bi-rocket"></i> Deploy Now
+                </button>
+                <button class="btn btn-danger" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> Delete Project
                 </button>
             </div>
         </div>
@@ -228,28 +233,37 @@
     </div>
 </div>
 
-<!-- Deployment Modal -->
-<div class="modal fade" id="deployModal" tabindex="-1">
+<!-- Delete Project Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Deploy Project</h5>
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger"></i> Delete Project
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to trigger a deployment for <strong id="deploy-project-name"></strong>?</p>
-                <div class="mb-3">
-                    <label for="deploymentType" class="form-label">Deployment Type</label>
-                    <select class="form-select" id="deploymentType">
-                        <option value="blue-green">Blue-Green (Zero Downtime)</option>
-                        <option value="simple">Simple (Quick)</option>
-                    </select>
+                <div class="alert alert-danger">
+                    <strong>Warning!</strong> This action cannot be undone.
                 </div>
+                <p>Are you sure you want to delete the project <strong>{{ project.repo_name }}</strong>?</p>
+                <p>This will:</p>
+                <ul>
+                    <li>Remove the project from the database</li>
+                    <li>Delete all project files from the server</li>
+                    <li>Stop and remove all related containers</li>
+                    <li>Remove all deployment history</li>
+                </ul>
+                <p>Please type <strong>{{ project.repo_name }}</strong> to confirm:</p>
+                <input type="text" class="form-control" id="deleteConfirmation" 
+                       data-project-name="{{ project.repo_name }}" 
+                       placeholder="Type project name to confirm">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmDeploy">
-                    <i class="bi bi-rocket"></i> Deploy
+                <button type="button" class="btn btn-danger" id="confirmDelete" disabled>
+                    <i class="bi bi-trash"></i> Delete Project
                 </button>
             </div>
         </div>
