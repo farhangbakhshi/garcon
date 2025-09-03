@@ -71,10 +71,15 @@ class DockerComposeModifier:
             compose_data['networks'] = {}
             self.logger.debug("Created empty networks section")
             
-        # Add web-proxy network as external
-        compose_data['networks']['web-proxy'] = {'external': True}
-        self.logger.debug("Added web-proxy external network")
-        
+        # Add web-proxy network as external, preserving existing networks
+        if isinstance(compose_data.get('networks'), dict):
+            compose_data['networks']['web-proxy'] = {'external': True}
+            self.logger.debug("Added web-proxy external network to existing network definitions")
+        else:
+            # Fallback for unexpected network format, though less likely
+            compose_data['networks'] = {'web-proxy': {'external': True}}
+            self.logger.warning("Networks section was not a dictionary. Replaced with web-proxy definition.")
+
         # Process each service
         service_counter = 0
         for service_name, service_config in compose_data['services'].items():
@@ -97,6 +102,26 @@ class DockerComposeModifier:
         service_counter: int
     ) -> None:
         """Configure a single service for Traefik."""
+        services_to_ignore = [
+            # Databases
+            'db', 'database', 'postgres', 'postgresql', 'mysql', 'mariadb', 
+            'mongo', 'mongodb', 'mssql', 'sqlserver', 'oracle',
+            
+            # Caches
+            'redis', 'memcached', 'memcache',
+            
+            # Message Queues / Brokers
+            'rabbitmq', 'kafka', 'activemq', 'nats', 'mosquitto',
+            
+            # Search Engines
+            'elasticsearch', 'solr', 'opensearch',
+            
+            # Other backend services
+            'jaeger', 'zipkin'
+        ]
+        if any(ignored_name in service_name.lower() for ignored_name in services_to_ignore):
+            self.logger.info(f"Skipping Traefik configuration for internal service: {service_name}")
+            return
         
         self.logger.debug(f"Configuring service {service_name} for Traefik")
         
