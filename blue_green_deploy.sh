@@ -106,12 +106,26 @@ check_container_health() {
     while [ $attempt -le $max_attempts ]; do
         log "DEBUG" "Health check attempt $attempt/$max_attempts for $container_name"
         
-        # Check if container is running
+        # Check if container exists and is running
         if ! docker ps --format "table {{.Names}}" | grep -q "^$container_name\$"; then
-            log "WARNING" "Container $container_name is not running on attempt $attempt"
-            sleep 5
-            ((attempt++))
-            continue
+            # Check if container exists but is stopped
+            if docker ps -a --format "table {{.Names}}" | grep -q "^$container_name\$"; then
+                # Container exists but is not running - get logs to diagnose
+                log "WARNING" "Container $container_name exists but is not running on attempt $attempt"
+                log "INFO" "Container logs for $container_name:"
+                docker logs "$container_name" 2>&1 | head -20 >> "$LOG_FILE"
+                
+                # Check container exit code
+                exit_code=$(docker inspect --format='{{.State.ExitCode}}' "$container_name" 2>/dev/null || echo "unknown")
+                log "WARNING" "Container $container_name exited with code: $exit_code"
+                
+                return 1
+            else
+                log "WARNING" "Container $container_name does not exist on attempt $attempt"
+                sleep 5
+                ((attempt++))
+                continue
+            fi
         fi
         
         # Get container health status
@@ -120,11 +134,21 @@ check_container_health() {
         if [ "$health_status" = "healthy" ]; then
             log "INFO" "Container $container_name is healthy"
             return 0
+        elif [ "$health_status" = "unhealthy" ]; then
+            log "WARNING" "Container $container_name is unhealthy"
+            # Get health check logs
+            docker inspect --format='{{.State.Health.Log}}' "$container_name" >> "$LOG_FILE" 2>&1 || true
+            return 1
         elif [ "$health_status" = "no-health-check" ]; then
             # If no health check is defined, check if container is running and responsive
-            if docker exec "$container_name" echo "health-check" >/dev/null 2>&1; then
+            log "DEBUG" "No health check defined for $container_name, checking basic responsiveness"
+            
+            # Try a simple command to see if container is responsive
+            if docker exec "$container_name" /bin/sh -c "echo 'health-check' && exit 0" >/dev/null 2>&1; then
                 log "INFO" "Container $container_name is running and responsive (no health check defined)"
                 return 0
+            else
+                log "DEBUG" "Container $container_name is not responsive to basic commands"
             fi
         fi
         
@@ -134,6 +158,11 @@ check_container_health() {
     done
     
     log "ERROR" "Container $container_name failed health check after $max_attempts attempts"
+    
+    # Get final container logs for debugging
+    log "INFO" "Final container logs for $container_name:"
+    docker logs "$container_name" 2>&1 | tail -50 >> "$LOG_FILE"
+    
     return 1
 }
 
