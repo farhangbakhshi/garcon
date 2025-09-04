@@ -303,6 +303,34 @@ def deploy_project():
             flash('Project not found', 'error')
             return redirect(url_for('main.projects_ui'))
         
+
+        # --- Automated cleanup of stuck deployments ---
+        import sqlite3
+        import time
+        db_path = service.db.db_path
+        now = int(time.time())
+        ten_minutes_ago = now - 600
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                # Find stuck deployments for this project
+                cursor.execute('''
+                    UPDATE deployments SET status='failed', error_message='Auto-failed: stuck deployment', deploy_time=CURRENT_TIMESTAMP
+                    WHERE project_id=? AND status='started' AND strftime('%s', deploy_time) < ?
+                ''', (project_id, ten_minutes_ago))
+                conn.commit()
+        except Exception as e:
+            logging.error(f"Error auto-failing stuck deployments: {e}")
+
+        # Check if a deployment is already in progress for this project (after cleanup)
+        recent_deployments = service.db.get_deployment_history(project_id, limit=1)
+        if recent_deployments and recent_deployments[0]['status'] == 'started':
+            error_msg = 'A deployment is already in progress for this project'
+            if request.is_json:
+                return jsonify(success=False, error=error_msg), 409  # Conflict status
+            flash(error_msg, 'warning')
+            return redirect(url_for('main.project_detail', project_name=project['repo_name']))
+        
         # Trigger deployment using existing logic
         repo_url = project['repo_url']
         project_name = project['repo_name']
