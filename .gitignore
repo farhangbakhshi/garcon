@@ -58,6 +58,10 @@ build/
 # Ignore log files.
 /logs/  # (already included above)
 
+# Lock files for deployment synchronization
+/locks/
+*.lock
+
 # Sensitive data (e.g., API keys, database credentials)
 *.env
 .env
