@@ -132,7 +132,7 @@ else
     fi
 fi
 
-# Check if docker-compose.yml or docker-compose.yaml exists and modify it for Traefik (only for fresh clones)
+# Check if docker-compose.yml, docker-compose.yaml, compose.yml, or compose.yaml exists and modify it for Traefik (only for fresh clones)
 COMPOSE_FILE=""
 if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
@@ -140,6 +140,12 @@ if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
 elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
     log "INFO" "Found docker-compose.yaml, checking if modification needed"
+elif [ -f "$TARGET_DIR/compose.yml" ]; then
+    COMPOSE_FILE="$TARGET_DIR/compose.yml"
+    log "INFO" "Found compose.yml, checking if modification needed"
+elif [ -f "$TARGET_DIR/compose.yaml" ]; then
+    COMPOSE_FILE="$TARGET_DIR/compose.yaml"
+    log "INFO" "Found compose.yaml, checking if modification needed"
 fi
 
 if [ -n "$COMPOSE_FILE" ]; then
@@ -169,7 +175,7 @@ sys.exit(0 if success else 1)
         log "INFO" "Repository already exists, skipping Traefik modification of $(basename "$COMPOSE_FILE")"
     fi
 else
-    log "WARNING" "No docker-compose.yml or docker-compose.yaml found in repository $REPO_NAME"
+    log "WARNING" "No docker-compose.yml, docker-compose.yaml, compose.yml, or compose.yaml found in repository $REPO_NAME"
     log "INFO" "Skipping Traefik integration for $REPO_NAME"
     exit 0
 fi
