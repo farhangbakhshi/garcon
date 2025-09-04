@@ -304,45 +304,114 @@ def deploy_project():
             return redirect(url_for('main.projects_ui'))
         
 
-        # --- Automated cleanup of stuck deployments ---
+        # --- File-based deployment lock to prevent concurrent deployments ---
+        import fcntl
+        import tempfile
+        import os
         import sqlite3
-        import time
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        project_name = project['repo_name']
+        lock_dir = Path(__file__).parent.parent / "locks"
+        lock_dir.mkdir(exist_ok=True)
+        lock_file_path = lock_dir / f"deploy_{project_name}.lock"
+        lock_file = None
+        
+        try:
+            # Try to acquire exclusive lock
+            lock_file = open(lock_file_path, 'w')
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            # Write process info to lock file
+            lock_file.write(f"PID: {os.getpid()}\nProject: {project_name}\nTime: {datetime.now()}\n")
+            lock_file.flush()
+            
+            logging.info(f"Acquired deployment lock for project {project_name}")
+            
+        except (IOError, OSError) as e:
+            if lock_file:
+                lock_file.close()
+                lock_file = None
+            error_msg = f'A deployment is already in progress for project {project_name}'
+            logging.warning(f"Failed to acquire deployment lock for {project_name}: {str(e)}")
+            if request.is_json:
+                return jsonify(success=False, error=error_msg), 409
+            flash(error_msg, 'warning')
+            return redirect(url_for('main.project_detail', project_name=project_name))
+        
         db_path = service.db.db_path
-        now = int(time.time())
-        ten_minutes_ago = now - 600
+        ten_minutes_ago = datetime.now() - timedelta(minutes=10)
+        ten_minutes_ago_str = ten_minutes_ago.strftime('%Y-%m-%d %H:%M:%S')
+        
         try:
             with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
-                # Find stuck deployments for this project
+                # Find stuck deployments for this project (deployments started more than 10 minutes ago)
                 cursor.execute('''
-                    UPDATE deployments SET status='failed', error_message='Auto-failed: stuck deployment', deploy_time=CURRENT_TIMESTAMP
-                    WHERE project_id=? AND status='started' AND strftime('%s', deploy_time) < ?
-                ''', (project_id, ten_minutes_ago))
+                    UPDATE deployments 
+                    SET status='failed', error_message='Auto-failed: stuck deployment (timeout)' 
+                    WHERE project_id=? AND status='started' AND deploy_time < ?
+                ''', (project_id, ten_minutes_ago_str))
+                
+                rows_updated = cursor.rowcount
+                if rows_updated > 0:
+                    logging.info(f"Auto-failed {rows_updated} stuck deployments for project {project_id}")
+                    
                 conn.commit()
         except Exception as e:
             logging.error(f"Error auto-failing stuck deployments: {e}")
 
         # Check if a deployment is already in progress for this project (after cleanup)
-        recent_deployments = service.db.get_deployment_history(project_id, limit=1)
-        if recent_deployments and recent_deployments[0]['status'] == 'started':
-            error_msg = 'A deployment is already in progress for this project'
+        # Use a database transaction to prevent race conditions
+        deployment_id = None
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.execute('BEGIN IMMEDIATE')  # Start exclusive transaction
+                cursor = conn.cursor()
+                
+                # Check for active deployments
+                cursor.execute('''
+                    SELECT id, status, deploy_time FROM deployments 
+                    WHERE project_id=? AND status='started' 
+                    ORDER BY deploy_time DESC LIMIT 1
+                ''', (project_id,))
+                
+                active_deployment = cursor.fetchone()
+                
+                if active_deployment:
+                    conn.rollback()
+                    error_msg = f'A deployment is already in progress for this project (ID: {active_deployment[0]})'
+                    logging.warning(f"Deployment blocked for project {project_id}: {error_msg}")
+                    if request.is_json:
+                        return jsonify(success=False, error=error_msg), 409
+                    flash(error_msg, 'warning')
+                    return redirect(url_for('main.project_detail', project_name=project['repo_name']))
+                
+                # Start new deployment record immediately to prevent race conditions
+                cursor.execute('''
+                    INSERT INTO deployments (project_id, status, deployment_type)
+                    VALUES (?, 'started', ?)
+                ''', (project_id, deployment_type))
+                
+                deployment_id = cursor.lastrowid
+                conn.commit()
+                logging.info(f"Created deployment record {deployment_id} for project {project_id}")
+                
+        except sqlite3.Error as e:
+            logging.error(f"Database error during deployment check: {e}")
             if request.is_json:
-                return jsonify(success=False, error=error_msg), 409  # Conflict status
-            flash(error_msg, 'warning')
-            return redirect(url_for('main.project_detail', project_name=project['repo_name']))
+                return jsonify(success=False, error='Database error'), 500
+            flash('Database error occurred', 'error')
+            return redirect(url_for('main.projects_ui'))
         
-        # Trigger deployment using existing logic
+        # Trigger deployment using existing logic (deployment record already created above)
         repo_url = project['repo_url']
         project_name = project['repo_name']
         
         logging.info(f"Web UI deployment triggered for {project_name}")
         
-        # Log deployment attempt
-        service.log_deployment_status(
-            project['id'], 
-            'started',
-            deployment_type=deployment_type
-        )
+        # Note: Deployment record already created above with ID {deployment_id}
         
         # Choose deployment script
         current_dir = Path(__file__).parent.parent
@@ -355,7 +424,13 @@ def deploy_project():
         import threading
         
         def run_deployment():
+            deployment_lock_file = None
             try:
+                # Re-open the lock file in this thread to maintain the lock
+                deployment_lock_file = open(lock_file_path, 'a')
+                fcntl.flock(deployment_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                logging.info(f"Background thread acquired deployment lock for project {project_name}")
+                
                 result = subprocess.run(
                     [str(deploy_script), repo_url], 
                     check=True,
@@ -374,31 +449,65 @@ def deploy_project():
                     elif line.startswith("DEPLOYMENT_UUID:"):
                         deployment_uuid = line.split(':', 1)[1].strip()
                 
-                # Log success
-                service.log_deployment_status(
-                    project['id'], 
-                    'success',
-                    container_id=container_id,
-                    deployment_uuid=deployment_uuid,
-                    deployment_type=deployment_type
-                )
+                # Update existing deployment record with success
+                try:
+                    with sqlite3.connect(db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            UPDATE deployments 
+                            SET status='success', container_id=?, deployment_uuid=?
+                            WHERE id=?
+                        ''', (container_id, deployment_uuid, deployment_id))
+                        conn.commit()
+                        logging.info(f"Updated deployment {deployment_id} with success status")
+                except sqlite3.Error as e:
+                    logging.error(f"Error updating deployment status: {e}")
                 
                 logging.info(f"Web UI deployment completed for {project_name}")
                 
             except Exception as e:
                 error_msg = f"Web UI deployment failed: {str(e)}"
                 logging.error(error_msg)
-                service.log_deployment_status(
-                    project['id'], 
-                    'failed', 
-                    error_message=error_msg,
-                    deployment_type=deployment_type
-                )
+                
+                # Update existing deployment record with failure
+                try:
+                    with sqlite3.connect(db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            UPDATE deployments 
+                            SET status='failed', error_message=?
+                            WHERE id=?
+                        ''', (error_msg, deployment_id))
+                        conn.commit()
+                        logging.info(f"Updated deployment {deployment_id} with failed status")
+                except sqlite3.Error as e:
+                    logging.error(f"Error updating deployment status: {e}")
+            
+            finally:
+                # Release the file lock when deployment completes
+                if deployment_lock_file:
+                    try:
+                        fcntl.flock(deployment_lock_file.fileno(), fcntl.LOCK_UN)
+                        deployment_lock_file.close()
+                        logging.info(f"Released deployment lock for project {project_name} from background thread")
+                        
+                        # Clean up lock file
+                        try:
+                            os.remove(lock_file_path)
+                        except OSError:
+                            pass  # File may already be removed
+                    except Exception as e:
+                        logging.error(f"Error releasing deployment lock from background thread: {e}")
         
         # Start deployment in background
         deployment_thread = threading.Thread(target=run_deployment)
         deployment_thread.daemon = True
         deployment_thread.start()
+        
+        # Release the main thread's lock immediately since background thread will handle it
+        if lock_file:
+            lock_file.close()
+            lock_file = None
         
         if request.is_json:
             return jsonify(success=True, message='Deployment started successfully')
