@@ -5,12 +5,22 @@ let deploymentSocket = null;
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
+    setTheme();
     initializeTooltips();
     initializeModals();
     initializeDeploymentButtons();
     initializeDeleteConfirmation();
     initializeWebSocket();
 });
+
+// Set Bootstrap theme based on system preference
+function setTheme() {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+}
+
+// Listen for theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTheme);
 
 // Initialize Bootstrap tooltips
 function initializeTooltips() {
