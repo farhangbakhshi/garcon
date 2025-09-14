@@ -428,12 +428,13 @@ except Exception as e:
     # Build and start new containers (Green deployment)
     log "INFO" "Building and starting new containers (Green deployment)"
     
-    if build_output=$(docker compose -f "$TEMP_COMPOSE_FILE" up -d --build 2>&1); then
+    docker compose -f "$TEMP_COMPOSE_FILE" up -d --build 2>&1 | tee -a "$LOG_FILE"
+    exit_code=${PIPESTATUS[0]}
+
+    if [ $exit_code -eq 0 ]; then
         log "INFO" "Successfully built and started new containers"
-        echo "$build_output" >> "$LOG_FILE"
     else
-        log "ERROR" "Failed to build/start new containers: $build_output"
-        echo "$build_output" >> "$LOG_FILE"
+        log "ERROR" "Failed to build/start new containers"
         
         # Cleanup temp file
         rm -f "$TEMP_COMPOSE_FILE"

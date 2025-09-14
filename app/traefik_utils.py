@@ -102,6 +102,22 @@ class DockerComposeModifier:
         service_counter: int
     ) -> None:
         """Configure a single service for Traefik."""
+        
+        # Disable healthcheck if not already defined (apply to all services)
+        if 'healthcheck' not in service_config:
+            service_config['healthcheck'] = {'disable': True}
+            # Add a label to indicate healthcheck is disabled
+            if 'labels' not in service_config:
+                service_config['labels'] = []
+            elif isinstance(service_config['labels'], dict):
+                # Convert dict labels to list format if needed
+                labels_list = []
+                for key, value in service_config['labels'].items():
+                    labels_list.append(f"{key}={value}")
+                service_config['labels'] = labels_list
+            service_config['labels'].append('healthcheck.disabled=true')
+            self.logger.debug(f"Disabled healthcheck for {service_name}")
+        
         services_to_ignore = [
             # Databases
             'db', 'database', 'postgres', 'postgresql', 'mysql', 'mariadb', 
@@ -140,7 +156,7 @@ class DockerComposeModifier:
         
         self.logger.debug(f"Updated networks for {service_name}: {service_config['networks']}")
             
-        # Ensure labels section exists
+        # Ensure labels section exists (now handled above, but keep for Traefik labels)
         if 'labels' not in service_config:
             service_config['labels'] = []
         elif isinstance(service_config['labels'], dict):
@@ -187,13 +203,6 @@ class DockerComposeModifier:
         # Add labels to service
         service_config['labels'].extend(traefik_labels)
         self.logger.debug(f"Added {len(traefik_labels)} Traefik labels to {service_name}")
-        
-        # Disable healthcheck if not already defined
-        if 'healthcheck' not in service_config:
-            service_config['healthcheck'] = {'disable': True}
-            # Add a label to indicate healthcheck is disabled
-            service_config['labels'].append('healthcheck.disabled=true')
-            self.logger.debug(f"Disabled healthcheck for {service_name}")
         
     def _extract_and_remove_ports(self, service_config: Dict[str, Any]) -> list:
         """Extract port information and remove ports section to avoid conflicts."""
