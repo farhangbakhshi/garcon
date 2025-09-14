@@ -7,14 +7,16 @@
 <nav class="flex mb-6" aria-label="Breadcrumb">
     <ol class="inline-flex items-center space-x-1 md:space-x-3">
         <li class="inline-flex items-center">
-            <a href="{{ url_for('main.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white">
+            <a href="{{ url_for('main.dashboard') }}"
+                class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white">
                 Dashboard
             </a>
         </li>
         <li>
             <div class="flex items-center">
                 <i class="bi bi-chevron-right text-gray-400 mx-1"></i>
-                <a href="{{ url_for('main.projects_ui') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2 dark:text-gray-400 dark:hover:text-white">
+                <a href="{{ url_for('main.projects_ui') }}"
+                    class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2 dark:text-gray-400 dark:hover:text-white">
                     Projects
                 </a>
             </div>
@@ -22,7 +24,8 @@
         <li aria-current="page">
             <div class="flex items-center">
                 <i class="bi bi-chevron-right text-gray-400 mx-1"></i>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{{ project.repo_name }}</span>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{{ project.repo_name
+                    }}</span>
             </div>
         </li>
     </ol>
@@ -34,14 +37,15 @@
         <i class="bi bi-folder mr-2"></i> {{ project.repo_name }}
     </h1>
     <div class="flex space-x-3">
-        <button class="deploy-btn inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out" 
-                data-project="{{ project.repo_name }}"
-                data-project-id="{{ project.id }}"
-                data-repo-url="{{ project.repo_url }}">
+        <button
+            class="deploy-btn inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out"
+            data-project="{{ project.repo_name }}" data-project-id="{{ project.id }}"
+            data-repo-url="{{ project.repo_url }}">
             <i class="bi bi-rocket mr-2"></i> Deploy Now
         </button>
-        <button class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-150 ease-in-out" 
-                onclick="document.getElementById('deleteModal').classList.remove('hidden')">
+        <button
+            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition duration-150 ease-in-out"
+            onclick="document.getElementById('deleteModal').classList.remove('hidden')">
             <i class="bi bi-trash mr-2"></i> Delete Project
         </button>
     </div>
@@ -62,50 +66,55 @@
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Repository:</dt>
                         <dd class="mt-1">
-                            <a href="{{ project.repo_url }}" target="_blank" class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
+                            <a href="{{ project.repo_url }}" target="_blank"
+                                class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                                 <i class="bi bi-github mr-1"></i> {{ project.repo_url }}
                             </a>
                         </dd>
                     </div>
-                    
+
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status:</dt>
                         <dd class="mt-1">
                             {% if project.actual_status == 'running' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    <i class="bi bi-circle-fill mr-1"></i> Running
-                                </span>
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <i class="bi bi-circle-fill mr-1"></i> Running
+                            </span>
                             {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                    <i class="bi bi-circle mr-1"></i> Stopped
-                                </span>
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                <i class="bi bi-circle mr-1"></i> Stopped
+                            </span>
                             {% endif %}
                         </dd>
                     </div>
-                    
+
                     {% if project.container_id %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Container ID:</dt>
                         <dd class="mt-1">
-                            <code class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm">{{ project.container_id }}</code>
+                            <code
+                                class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm">{{ project.container_id }}</code>
                         </dd>
                     </div>
                     {% endif %}
-                    
+
                     {% if project.deployment_uuid %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Latest Deployment:</dt>
                         <dd class="mt-1">
-                            <code class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm">{{ project.deployment_uuid }}</code>
+                            <code
+                                class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm">{{ project.deployment_uuid }}</code>
                         </dd>
                     </div>
                     {% endif %}
-                    
+
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created:</dt>
                         <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ project.created_at }}</dd>
                     </div>
-                    
+
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated:</dt>
                         <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ project.updated_at }}</dd>
@@ -114,7 +123,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Access URLs -->
     <div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -125,25 +134,26 @@
             </div>
             <div class="p-6">
                 {% if project_urls %}
-                    <div class="space-y-2">
-                        {% for url in project_urls[:5] %}
-                            <a href="{{ url }}" target="_blank" class="block w-full text-center px-3 py-2 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out">
-                                <i class="bi bi-box-arrow-up-right mr-1"></i> {{ url.split('//')[1] }}
-                            </a>
-                        {% endfor %}
-                        {% if project_urls|length > 5 %}
-                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
-                                And {{ project_urls|length - 5 }} more...
-                            </p>
-                        {% endif %}
-                    </div>
+                <div class="space-y-2">
+                    {% for url in project_urls[:5] %}
+                    <a href="{{ url }}" target="_blank"
+                        class="block w-full text-center px-3 py-2 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out">
+                        <i class="bi bi-box-arrow-up-right mr-1"></i> {{ url.split('//')[1] }}
+                    </a>
+                    {% endfor %}
+                    {% if project_urls|length > 5 %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
+                        And {{ project_urls|length - 5 }} more...
+                    </p>
+                    {% endif %}
+                </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-exclamation-triangle text-gray-400 dark:text-gray-500 text-2xl"></i>
-                        <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-                            No URLs available. Deploy the project first.
-                        </p>
-                    </div>
+                <div class="text-center py-4">
+                    <i class="bi bi-exclamation-triangle text-gray-400 dark:text-gray-500 text-2xl"></i>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+                        No URLs available. Deploy the project first.
+                    </p>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -156,103 +166,128 @@
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="bi bi-clock-history mr-2"></i> Deployment History
         </h5>
-        <button class="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out" onclick="location.reload()">
+        <button
+            class="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out"
+            onclick="location.reload()">
             <i class="bi bi-arrow-clockwise mr-1"></i> Refresh
         </button>
     </div>
     <div class="p-6">
         {% if deployments %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Commit</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Container</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">UUID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Error</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for deployment in deployments %}
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if deployment.status == 'success' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                        <i class="bi bi-check-circle mr-1"></i> Success
-                                    </span>
-                                {% elif deployment.status == 'failed' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                        <i class="bi bi-x-circle mr-1"></i> Failed
-                                    </span>
-                                {% elif deployment.status == 'started' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                        <i class="bi bi-hourglass-split mr-1"></i> Started
-                                    </span>
-                                {% else %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                        {{ deployment.status.title() }}
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
-                                    {{ deployment.deployment_type or 'legacy' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ deployment.deploy_time }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if deployment.commit_hash %}
-                                    <code class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.commit_hash[:8] }}...</code>
-                                {% else %}
-                                    <span class="text-gray-400 dark:text-gray-500">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if deployment.container_id %}
-                                    <code class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.container_id[:12] }}...</code>
-                                {% else %}
-                                    <span class="text-gray-400 dark:text-gray-500">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if deployment.deployment_uuid %}
-                                    <code class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.deployment_uuid[:8] }}...</code>
-                                {% else %}
-                                    <span class="text-gray-400 dark:text-gray-500">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if deployment.error_message %}
-                                    <button class="inline-flex items-center px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/50 font-medium text-xs rounded transition duration-150 ease-in-out" 
-                                            title="{{ deployment.error_message }}">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                    </button>
-                                {% else %}
-                                    <span class="text-gray-400 dark:text-gray-500">-</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Status</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Type</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Time</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Commit</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Container</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            UUID</th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Error</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for deployment in deployments %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if deployment.status == 'success' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <i class="bi bi-check-circle mr-1"></i> Success
+                            </span>
+                            {% elif deployment.status == 'failed' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                <i class="bi bi-x-circle mr-1"></i> Failed
+                            </span>
+                            {% elif deployment.status == 'started' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                <i class="bi bi-hourglass-split mr-1"></i> Started
+                            </span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                {{ deployment.status.title() }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                                {{ deployment.deployment_type or 'legacy' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ deployment.deploy_time }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if deployment.commit_hash %}
+                            <code
+                                class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.commit_hash[:8] }}...</code>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if deployment.container_id %}
+                            <code
+                                class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.container_id[:12] }}...</code>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if deployment.deployment_uuid %}
+                            <code
+                                class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.deployment_uuid[:8] }}...</code>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if deployment.error_message %}
+                            <button
+                                class="inline-flex items-center px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/50 font-medium text-xs rounded transition duration-150 ease-in-out"
+                                title="{{ deployment.error_message }}">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <div class="text-center py-12">
-                <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-500"></i>
-                <h5 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No Deployments Yet</h5>
-                <p class="text-gray-500 dark:text-gray-400 mt-2">This project hasn't been deployed yet.</p>
-                <button class="deploy-btn inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out mt-4" 
-                        data-project="{{ project.repo_name }}"
-                        data-project-id="{{ project.id }}"
-                        data-repo-url="{{ project.repo_url }}">
-                    <i class="bi bi-rocket mr-2"></i> Deploy Now
-                </button>
-            </div>
+        <div class="text-center py-12">
+            <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-500"></i>
+            <h5 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No Deployments Yet</h5>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">This project hasn't been deployed yet.</p>
+            <button
+                class="deploy-btn inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out mt-4"
+                data-project="{{ project.repo_name }}" data-project-id="{{ project.id }}"
+                data-repo-url="{{ project.repo_url }}">
+                <i class="bi bi-rocket mr-2"></i> Deploy Now
+            </button>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -265,16 +300,19 @@
                 <h3 class="text-lg font-medium text-red-600 dark:text-red-400">
                     <i class="bi bi-exclamation-triangle mr-2"></i> Delete Project
                 </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="closeDeleteModal()">
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    onclick="closeDeleteModal()">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
             <div class="mt-2 px-7 py-3">
                 <div class="p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg mb-4">
-                    <p class="text-sm font-medium text-red-700 dark:text-red-300">Warning! This action cannot be undone.</p>
+                    <p class="text-sm font-medium text-red-700 dark:text-red-300">Warning! This action cannot be undone.
+                    </p>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Are you sure you want to delete the project <strong class="text-gray-900 dark:text-white">{{ project.repo_name }}</strong>?
+                    Are you sure you want to delete the project <strong class="text-gray-900 dark:text-white">{{
+                        project.repo_name }}</strong>?
                 </p>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">This will:</p>
                 <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside mb-4 space-y-1">
@@ -284,23 +322,23 @@
                     <li>Remove all deployment history</li>
                 </ul>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                    Please type <strong class="text-gray-900 dark:text-white">{{ project.repo_name }}</strong> to confirm:
+                    Please type <strong class="text-gray-900 dark:text-white">{{ project.repo_name }}</strong> to
+                    confirm:
                 </p>
-                <input type="text" 
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out" 
-                       id="deleteConfirmation" 
-                       data-project-name="{{ project.repo_name }}" 
-                       placeholder="Type project name to confirm">
+                <input type="text"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+                    id="deleteConfirmation" data-project-name="{{ project.repo_name }}"
+                    placeholder="Type project name to confirm">
             </div>
             <div class="items-center px-4 py-3">
                 <div class="flex space-x-3">
-                    <button id="confirmDelete" 
-                            class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition duration-150 ease-in-out" 
-                            disabled>
+                    <button id="confirmDelete"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition duration-150 ease-in-out"
+                        disabled>
                         <i class="bi bi-trash mr-2"></i> Delete Project
                     </button>
-                    <button onclick="closeDeleteModal()" 
-                            class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
+                    <button onclick="closeDeleteModal()"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
                         Cancel
                     </button>
                 </div>
@@ -315,22 +353,27 @@
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white">Deploy Project</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="closeDeployModal()">
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    onclick="closeDeployModal()">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
             <div class="mt-2 px-7 py-3">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Are you sure you want to trigger a deployment for <strong id="deploy-project-name" class="text-gray-900 dark:text-white"></strong>?
+                    Are you sure you want to trigger a deployment for <strong id="deploy-project-name"
+                        class="text-gray-900 dark:text-white"></strong>?
                 </p>
                 <div class="mt-4">
-                    <label for="deploymentType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deployment Type</label>
-                    <select id="deploymentType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <label for="deploymentType"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deployment Type</label>
+                    <select id="deploymentType"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                         <option value="blue-green">Blue-Green (Zero Downtime)</option>
                         <option value="simple">Simple (Quick)</option>
                     </select>
                 </div>
-                <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div
+                    class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-lg">
                     <div class="flex">
                         <i class="bi bi-info-circle text-blue-500 dark:text-blue-400 mr-2 mt-0.5"></i>
                         <p class="text-sm text-blue-700 dark:text-blue-300">
@@ -341,10 +384,12 @@
             </div>
             <div class="items-center px-4 py-3">
                 <div class="flex space-x-3">
-                    <button id="confirmDeploy" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
+                    <button id="confirmDeploy"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
                         <i class="bi bi-rocket mr-2"></i> Deploy
                     </button>
-                    <button onclick="closeDeployModal()" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
+                    <button onclick="closeDeployModal()"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
                         Cancel
                     </button>
                 </div>
@@ -354,21 +399,21 @@
 </div>
 
 <script>
-function closeDeployModal() {
-    document.getElementById('deployModal').classList.add('hidden');
-}
+    function closeDeployModal() {
+        document.getElementById('deployModal').classList.add('hidden');
+    }
 
-function closeDeleteModal() {
-    document.getElementById('deleteModal').classList.add('hidden');
-    document.getElementById('deleteConfirmation').value = '';
-    document.getElementById('confirmDelete').disabled = true;
-}
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('deleteConfirmation').value = '';
+        document.getElementById('confirmDelete').disabled = true;
+    }
 
-// Handle delete confirmation
-document.getElementById('deleteConfirmation').addEventListener('input', function() {
-    const projectName = this.dataset.projectName;
-    const enteredText = this.value.trim();
-    document.getElementById('confirmDelete').disabled = enteredText !== projectName;
-});
+    // Handle delete confirmation
+    document.getElementById('deleteConfirmation').addEventListener('input', function () {
+        const projectName = this.dataset.projectName;
+        const enteredText = this.value.trim();
+        document.getElementById('confirmDelete').disabled = enteredText !== projectName;
+    });
 </script>
 {% endblock %}

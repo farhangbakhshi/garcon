@@ -22,7 +22,7 @@ check_http() {
             echo "Health check failed: $url (curl)"
             return 1
         fi
-    elif command -v wget >/dev/null 2>&1; then
+        elif command -v wget >/dev/null 2>&1; then
         # Use wget if curl is not available
         if wget -q --timeout=10 --tries=1 "$url" -O /dev/null; then
             echo "Health check passed: $url"

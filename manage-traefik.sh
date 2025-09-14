@@ -116,7 +116,7 @@ open_dashboard() {
     # Try to open in browser (works on most Linux desktop environments)
     if command -v xdg-open > /dev/null; then
         xdg-open http://localhost:8080
-    elif command -v gnome-open > /dev/null; then
+        elif command -v gnome-open > /dev/null; then
         gnome-open http://localhost:8080
     else
         echo "Please open http://localhost:8080 in your browser manually"
@@ -147,35 +147,35 @@ cleanup_traefik() {
 case "${1:-help}" in
     setup)
         setup_traefik
-        ;;
+    ;;
     start)
         start_traefik
-        ;;
+    ;;
     stop)
         stop_traefik
-        ;;
+    ;;
     restart)
         restart_traefik
-        ;;
+    ;;
     status)
         show_status
-        ;;
+    ;;
     logs)
         show_logs
-        ;;
+    ;;
     dashboard)
         open_dashboard
-        ;;
+    ;;
     cleanup)
         cleanup_traefik
-        ;;
+    ;;
     help)
         show_help
-        ;;
+    ;;
     *)
         echo "Unknown command: $1"
         echo ""
         show_help
         exit 1
-        ;;
+    ;;
 esac

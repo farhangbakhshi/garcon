@@ -14,7 +14,9 @@
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="bi bi-funnel text-gray-400"></i>
         </div>
-        <select class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out" id="statusFilter">
+        <select
+            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+            id="statusFilter">
             <option value="">All Statuses</option>
             <option value="success">Success</option>
             <option value="failed">Failed</option>
@@ -25,128 +27,139 @@
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="bi bi-search text-gray-400"></i>
         </div>
-        <input type="text" 
-               class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out" 
-               id="projectFilter" 
-               placeholder="Filter by project name...">
+        <input type="text"
+            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+            id="projectFilter" placeholder="Filter by project name...">
     </div>
 </div>
 
 {% if deployments %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="deploymentsTable">
-                <thead class="bg-gray-800 dark:bg-gray-900">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Project</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Deployment Time</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Commit</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Container</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Duration</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {% for deployment in deployments %}
-                    <tr class="deployment-row hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out" 
-                        data-status="{{ deployment.status }}" 
-                        data-project="{{ deployment.repo_name }}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{{ url_for('main.project_detail', project_name=deployment.repo_name) }}" 
-                               class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
-                                <i class="bi bi-folder mr-1"></i> {{ deployment.repo_name }}
-                            </a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if deployment.status == 'success' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    <i class="bi bi-check-circle mr-1"></i> Success
-                                </span>
-                            {% elif deployment.status == 'failed' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                    <i class="bi bi-x-circle mr-1"></i> Failed
-                                </span>
-                            {% elif deployment.status == 'started' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                    <i class="bi bi-hourglass-split mr-1"></i> In Progress
-                                </span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                    {{ deployment.status.title() }}
-                                </span>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="deploymentsTable">
+            <thead class="bg-gray-800 dark:bg-gray-900">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Project</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Deployment
+                        Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Commit</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Container
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Duration
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {% for deployment in deployments %}
+                <tr class="deployment-row hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out"
+                    data-status="{{ deployment.status }}" data-project="{{ deployment.repo_name }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="{{ url_for('main.project_detail', project_name=deployment.repo_name) }}"
+                            class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                            <i class="bi bi-folder mr-1"></i> {{ deployment.repo_name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if deployment.status == 'success' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <i class="bi bi-check-circle mr-1"></i> Success
+                        </span>
+                        {% elif deployment.status == 'failed' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            <i class="bi bi-x-circle mr-1"></i> Failed
+                        </span>
+                        {% elif deployment.status == 'started' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            <i class="bi bi-hourglass-split mr-1"></i> In Progress
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                            {{ deployment.status.title() }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                            {{ deployment.deployment_type or 'legacy' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ deployment.deploy_time }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if deployment.commit_hash %}
+                        <code
+                            class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.commit_hash[:8] }}...</code>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if deployment.container_id %}
+                        <code
+                            class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.container_id[:12] }}...</code>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% if deployment.status == 'success' %}
+                        ~2-5 min
+                        {% elif deployment.status == 'failed' %}
+                        Failed
+                        {% else %}
+                        In progress...
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <div class="flex space-x-2">
+                            {% if deployment.error_message %}
+                            <button
+                                class="inline-flex items-center px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/50 font-medium text-xs rounded transition duration-150 ease-in-out"
+                                onclick="showErrorModal('{{ deployment.error_message }}', '{{ deployment.id }}')"
+                                title="View Error Details">
+                                <i class="bi bi-exclamation-triangle mr-1"></i> View Error
+                            </button>
                             {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
-                                {{ deployment.deployment_type or 'legacy' }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ deployment.deploy_time }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if deployment.commit_hash %}
-                                <code class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.commit_hash[:8] }}...</code>
-                            {% else %}
-                                <span class="text-gray-400 dark:text-gray-500">-</span>
+
+                            {% if deployment.deployment_uuid %}
+                            <button
+                                class="inline-flex items-center px-2 py-1 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-xs rounded transition duration-150 ease-in-out"
+                                title="Deployment UUID: {{ deployment.deployment_uuid }}">
+                                <i class="bi bi-tag"></i>
+                            </button>
                             {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if deployment.container_id %}
-                                <code class="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ deployment.container_id[:12] }}...</code>
-                            {% else %}
-                                <span class="text-gray-400 dark:text-gray-500">-</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {% if deployment.status == 'success' %}
-                                ~2-5 min
-                            {% elif deployment.status == 'failed' %}
-                                Failed
-                            {% else %}
-                                In progress...
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <div class="flex space-x-2">
-                                {% if deployment.error_message %}
-                                    <button class="inline-flex items-center px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/50 font-medium text-xs rounded transition duration-150 ease-in-out" 
-                                            onclick="showErrorModal('{{ deployment.error_message }}', '{{ deployment.id }}')"
-                                            title="View Error Details">
-                                        <i class="bi bi-exclamation-triangle mr-1"></i> View Error
-                                    </button>
-                                {% endif %}
-                                
-                                {% if deployment.deployment_uuid %}
-                                    <button class="inline-flex items-center px-2 py-1 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-xs rounded transition duration-150 ease-in-out" 
-                                            title="Deployment UUID: {{ deployment.deployment_uuid }}">
-                                        <i class="bi bi-tag"></i>
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 {% else %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-        <div class="text-center py-12">
-            <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-500"></i>
-            <h4 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No Deployments Yet</h4>
-            <p class="mt-2 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                No deployment history found. Deployments will appear here after you trigger them 
-                via webhooks or manual deployment.
-            </p>
-            <a href="{{ url_for('main.add_project_form') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-150 ease-in-out mt-6">
-                <i class="bi bi-plus-circle mr-2"></i> Add Your First Project
-            </a>
-        </div>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <div class="text-center py-12">
+        <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-500"></i>
+        <h4 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No Deployments Yet</h4>
+        <p class="mt-2 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            No deployment history found. Deployments will appear here after you trigger them
+            via webhooks or manual deployment.
+        </p>
+        <a href="{{ url_for('main.add_project_form') }}"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-150 ease-in-out mt-6">
+            <i class="bi bi-plus-circle mr-2"></i> Add Your First Project
+        </a>
     </div>
+</div>
 {% endif %}
 
 <!-- Error Details Modal -->
@@ -157,22 +170,27 @@
                 <h3 class="text-lg font-medium text-red-600 dark:text-red-400">
                     <i class="bi bi-exclamation-triangle mr-2"></i> Deployment Error Details
                 </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="closeErrorModal()">
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    onclick="closeErrorModal()">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deployment ID:</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deployment
+                        ID:</label>
                     <p id="errorDeploymentId" class="text-sm text-gray-500 dark:text-gray-400"></p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Error Message:</label>
-                    <pre id="errorMessage" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap overflow-auto max-h-64"></pre>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Error
+                        Message:</label>
+                    <pre id="errorMessage"
+                        class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap overflow-auto max-h-64"></pre>
                 </div>
             </div>
             <div class="mt-6 flex justify-end">
-                <button onclick="closeErrorModal()" class="inline-flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
+                <button onclick="closeErrorModal()"
+                    class="inline-flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
                     Close
                 </button>
             </div>
@@ -186,17 +204,21 @@
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white">Deploy Project</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="closeDeployModal()">
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    onclick="closeDeployModal()">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
             <div class="mt-2 px-7 py-3">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Are you sure you want to trigger a deployment for <strong id="deploy-project-name" class="text-gray-900 dark:text-white"></strong>?
+                    Are you sure you want to trigger a deployment for <strong id="deploy-project-name"
+                        class="text-gray-900 dark:text-white"></strong>?
                 </p>
                 <div class="mt-4">
-                    <label for="deploymentType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deployment Type</label>
-                    <select id="deploymentType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <label for="deploymentType"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deployment Type</label>
+                    <select id="deploymentType"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                         <option value="blue-green">Blue-Green (Zero Downtime)</option>
                         <option value="simple">Simple (Quick)</option>
                     </select>
@@ -204,10 +226,12 @@
             </div>
             <div class="items-center px-4 py-3">
                 <div class="flex space-x-3">
-                    <button id="confirmDeploy" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
+                    <button id="confirmDeploy"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
                         <i class="bi bi-rocket mr-2"></i> Deploy
                     </button>
-                    <button onclick="closeDeployModal()" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
+                    <button onclick="closeDeployModal()"
+                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
                         Cancel
                     </button>
                 </div>
@@ -217,39 +241,39 @@
 </div>
 
 <script>
-// Filter functionality
-document.getElementById('statusFilter').addEventListener('change', filterTable);
-document.getElementById('projectFilter').addEventListener('input', filterTable);
+    // Filter functionality
+    document.getElementById('statusFilter').addEventListener('change', filterTable);
+    document.getElementById('projectFilter').addEventListener('input', filterTable);
 
-function filterTable() {
-    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-    const projectFilter = document.getElementById('projectFilter').value.toLowerCase();
-    const rows = document.querySelectorAll('.deployment-row');
-    
-    rows.forEach(row => {
-        const status = row.dataset.status.toLowerCase();
-        const project = row.dataset.project.toLowerCase();
-        
-        const statusMatch = !statusFilter || status === statusFilter;
-        const projectMatch = !projectFilter || project.includes(projectFilter);
-        
-        row.style.display = (statusMatch && projectMatch) ? '' : 'none';
-    });
-}
+    function filterTable() {
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const projectFilter = document.getElementById('projectFilter').value.toLowerCase();
+        const rows = document.querySelectorAll('.deployment-row');
 
-// Error modal handling
-function showErrorModal(errorMessage, deploymentId) {
-    document.getElementById('errorMessage').textContent = errorMessage;
-    document.getElementById('errorDeploymentId').textContent = deploymentId;
-    document.getElementById('errorModal').classList.remove('hidden');
-}
+        rows.forEach(row => {
+            const status = row.dataset.status.toLowerCase();
+            const project = row.dataset.project.toLowerCase();
 
-function closeErrorModal() {
-    document.getElementById('errorModal').classList.add('hidden');
-}
+            const statusMatch = !statusFilter || status === statusFilter;
+            const projectMatch = !projectFilter || project.includes(projectFilter);
 
-function closeDeployModal() {
-    document.getElementById('deployModal').classList.add('hidden');
-}
+            row.style.display = (statusMatch && projectMatch) ? '' : 'none';
+        });
+    }
+
+    // Error modal handling
+    function showErrorModal(errorMessage, deploymentId) {
+        document.getElementById('errorMessage').textContent = errorMessage;
+        document.getElementById('errorDeploymentId').textContent = deploymentId;
+        document.getElementById('errorModal').classList.remove('hidden');
+    }
+
+    function closeErrorModal() {
+        document.getElementById('errorModal').classList.add('hidden');
+    }
+
+    function closeDeployModal() {
+        document.getElementById('deployModal').classList.add('hidden');
+    }
 </script>
 {% endblock %}

@@ -102,7 +102,7 @@ if [ -d "$TARGET_DIR/.git" ]; then
         log "ERROR" "Failed to pull changes"
         exit 1
     fi
-elif [ -d "$TARGET_DIR" ]; then
+    elif [ -d "$TARGET_DIR" ]; then
     log "WARNING" "Directory exists but is not a git repository, removing it"
     if run_with_logging "Directory cleanup" rm -rf "$TARGET_DIR"; then
         log "INFO" "Removed existing non-git directory"
@@ -137,13 +137,13 @@ COMPOSE_FILE=""
 if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
     log "INFO" "Found docker-compose.yml, checking if modification needed"
-elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
+    elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
     COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
     log "INFO" "Found docker-compose.yaml, checking if modification needed"
-elif [ -f "$TARGET_DIR/compose.yml" ]; then
+    elif [ -f "$TARGET_DIR/compose.yml" ]; then
     COMPOSE_FILE="$TARGET_DIR/compose.yml"
     log "INFO" "Found compose.yml, checking if modification needed"
-elif [ -f "$TARGET_DIR/compose.yaml" ]; then
+    elif [ -f "$TARGET_DIR/compose.yaml" ]; then
     COMPOSE_FILE="$TARGET_DIR/compose.yaml"
     log "INFO" "Found compose.yaml, checking if modification needed"
 fi
@@ -154,10 +154,10 @@ if [ -n "$COMPOSE_FILE" ]; then
         PYTHON_EXEC="python3" # Default to system python
         if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
             PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
-        elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
+            elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
             PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
         fi
-
+        
         if run_with_logging "Docker Compose Traefik modification" "$PYTHON_EXEC" -c "
 import sys
 sys.path.append('$SCRIPT_DIR')
@@ -165,7 +165,7 @@ from app.traefik_utils import DockerComposeModifier
 modifier = DockerComposeModifier('$COMPOSE_FILE', '$REPO_NAME')
 success = modifier.modify_compose_file()
 sys.exit(0 if success else 1)
-"; then
+        "; then
             log "INFO" "Successfully modified docker-compose file for Traefik"
         else
             log "ERROR" "Failed to modify docker-compose file for Traefik"

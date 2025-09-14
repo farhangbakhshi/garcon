@@ -1,7 +1,7 @@
 // Garcon Frontend JavaScript
 
 // Initialize application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeTooltips();
     initializeModals();
     initializeDeploymentButtons();
@@ -33,12 +33,12 @@ function initializeModals() {
 // Initialize deployment buttons
 function initializeDeploymentButtons() {
     // Event delegation for deploy buttons
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         const deployBtn = event.target.closest('.deploy-btn');
         if (deployBtn) {
             handleDeployment(deployBtn);
         }
-        
+
         // Handle confirm deploy button
         if (event.target.id === 'confirmDeploy' || event.target.closest('#confirmDeploy')) {
             event.preventDefault();
@@ -52,7 +52,7 @@ function handleDeployment(button) {
     const projectId = button.dataset.projectId;
     const projectName = button.dataset.project;
     const deploymentType = button.dataset.deploymentType || 'blue-green';
-    
+
     // Show confirmation modal
     showDeploymentModal(projectId, projectName, deploymentType);
 }
@@ -61,17 +61,17 @@ function handleDeployment(button) {
 function showDeploymentModal(projectId, projectName, deploymentType) {
     const modal = document.getElementById('deployModal');
     if (!modal) return;
-    
+
     // Update modal content
     const projectNameElement = document.getElementById('deploy-project-name');
     const deploymentTypeSelect = document.getElementById('deploymentType');
-    
+
     if (projectNameElement) projectNameElement.textContent = projectName;
     if (deploymentTypeSelect) deploymentTypeSelect.value = deploymentType;
-    
+
     // Store project ID for later use
     modal.dataset.projectId = projectId;
-    
+
     // Show modal
     modal.classList.remove('hidden');
 }
@@ -80,13 +80,13 @@ function showDeploymentModal(projectId, projectName, deploymentType) {
 function confirmDeployment() {
     const modal = document.getElementById('deployModal');
     if (!modal) return;
-    
+
     const projectId = parseInt(modal.dataset.projectId);
     const deploymentType = document.getElementById('deploymentType')?.value || 'blue-green';
-    
+
     // Hide modal
     modal.classList.add('hidden');
-    
+
     // Start deployment
     startDeployment(projectId, deploymentType);
 }
@@ -95,7 +95,7 @@ function confirmDeployment() {
 function startDeployment(projectId, deploymentType) {
     // Show loading notification
     showNotification('Starting deployment...', 'info');
-    
+
     // Make deployment request
     fetch('/deploy', {
         method: 'POST',
@@ -108,33 +108,33 @@ function startDeployment(projectId, deploymentType) {
             deployment_type: deploymentType
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Deployment started successfully!', 'success');
-            // Refresh page after a delay to show updated status
-            setTimeout(() => location.reload(), 2000);
-        } else {
-            showNotification(data.error || 'Deployment failed', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Deployment error:', error);
-        showNotification('Network error during deployment', 'danger');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Deployment started successfully!', 'success');
+                // Refresh page after a delay to show updated status
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showNotification(data.error || 'Deployment failed', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Deployment error:', error);
+            showNotification('Network error during deployment', 'danger');
+        });
 }
 
 // Show notification toast using Tailwind classes
 function showNotification(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-    
+
     const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'bg-green-500' : 
-                   type === 'danger' ? 'bg-red-500' : 
-                   type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
-    
+    const bgColor = type === 'success' ? 'bg-green-500' :
+        type === 'danger' ? 'bg-red-500' :
+            type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+
     toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg mb-3 transition-all duration-300 transform translate-x-full`;
-    
+
     toast.innerHTML = `
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -146,14 +146,14 @@ function showNotification(message, type = 'info') {
             </button>
         </div>
     `;
-    
+
     toastContainer.appendChild(toast);
-    
+
     // Animate in
     setTimeout(() => {
         toast.classList.remove('translate-x-full');
     }, 100);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         toast.classList.add('translate-x-full');
@@ -201,33 +201,33 @@ function validateProjectForm(form) {
     const name = form.querySelector('[name="name"]')?.value.trim();
     const gitUrl = form.querySelector('[name="git_url"]')?.value.trim();
     const domain = form.querySelector('[name="domain"]')?.value.trim();
-    
+
     if (!name || !gitUrl || !domain) {
         showNotification('Please fill in all required fields', 'warning');
         return false;
     }
-    
+
     // Basic URL validation
     const urlPattern = /^https?:\/\/.+/;
     if (!urlPattern.test(gitUrl)) {
         showNotification('Please enter a valid Git URL', 'warning');
         return false;
     }
-    
+
     // Basic domain validation
     const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
     if (!domainPattern.test(domain)) {
         showNotification('Please enter a valid domain name', 'warning');
         return false;
     }
-    
+
     return true;
 }
 
 // Add event listeners for forms
-document.addEventListener('submit', function(event) {
+document.addEventListener('submit', function (event) {
     const form = event.target;
-    
+
     if (form.id === 'addProjectForm') {
         if (!validateProjectForm(form)) {
             event.preventDefault();
@@ -236,9 +236,9 @@ document.addEventListener('submit', function(event) {
 });
 
 // Add confirmation for destructive actions
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const element = event.target.closest('[data-confirm]');
-    
+
     if (element) {
         const message = element.dataset.confirm || 'Are you sure you want to perform this action?';
         if (!confirm(message)) {
@@ -253,7 +253,7 @@ let logAutoRefresh = null;
 function toggleLogAutoRefresh() {
     const button = document.getElementById('autoRefreshBtn');
     const status = document.getElementById('autoRefreshStatus');
-    
+
     if (logAutoRefresh) {
         clearInterval(logAutoRefresh);
         logAutoRefresh = null;
@@ -274,14 +274,14 @@ function toggleLogAutoRefresh() {
 function initializeDeleteConfirmation() {
     const deleteConfirmationInput = document.getElementById('deleteConfirmation');
     const confirmDeleteBtn = document.getElementById('confirmDelete');
-    
+
     if (deleteConfirmationInput && confirmDeleteBtn) {
         const projectName = deleteConfirmationInput.dataset.projectName;
-        
-        deleteConfirmationInput.addEventListener('input', function() {
+
+        deleteConfirmationInput.addEventListener('input', function () {
             const enteredText = this.value.trim();
             confirmDeleteBtn.disabled = enteredText !== projectName;
-            
+
             if (enteredText === projectName) {
                 confirmDeleteBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
                 confirmDeleteBtn.classList.add('bg-red-600', 'hover:bg-red-700');
@@ -290,8 +290,8 @@ function initializeDeleteConfirmation() {
                 confirmDeleteBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
             }
         });
-        
-        confirmDeleteBtn.addEventListener('click', function() {
+
+        confirmDeleteBtn.addEventListener('click', function () {
             if (!this.disabled) {
                 deleteProject(projectName);
             }
@@ -306,7 +306,7 @@ function deleteProject(projectName) {
     const originalText = confirmBtn.innerHTML;
     confirmBtn.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i>Deleting...';
     confirmBtn.disabled = true;
-    
+
     // Make delete request
     fetch(`/projects/${projectName}/delete`, {
         method: 'DELETE',
@@ -314,53 +314,53 @@ function deleteProject(projectName) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Project deleted successfully!', 'success');
-            // Redirect to projects page after a delay
-            setTimeout(() => {
-                window.location.href = '/projects_ui';
-            }, 2000);
-        } else {
-            showNotification(data.error || 'Failed to delete project', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Delete error:', error);
-        showNotification('Network error during project deletion', 'danger');
-    })
-    .finally(() => {
-        // Restore button state
-        confirmBtn.innerHTML = originalText;
-        confirmBtn.disabled = false;
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Project deleted successfully!', 'success');
+                // Redirect to projects page after a delay
+                setTimeout(() => {
+                    window.location.href = '/projects_ui';
+                }, 2000);
+            } else {
+                showNotification(data.error || 'Failed to delete project', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showNotification('Network error during project deletion', 'danger');
+        })
+        .finally(() => {
+            // Restore button state
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+        });
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     if (logAutoRefresh) {
         clearInterval(logAutoRefresh);
     }
 });
 
 // Global modal close functions for compatibility
-window.closeModal = function() {
+window.closeModal = function () {
     const modals = document.querySelectorAll('[id$="Modal"]');
     modals.forEach(modal => modal.classList.add('hidden'));
 };
 
-window.closeErrorModal = function() {
+window.closeErrorModal = function () {
     const modal = document.getElementById('errorModal');
     if (modal) modal.classList.add('hidden');
 };
 
-window.closeDeleteModal = function() {
+window.closeDeleteModal = function () {
     const modal = document.getElementById('deleteModal');
     if (modal) modal.classList.add('hidden');
 };
 
-window.closeDeployModal = function() {
+window.closeDeployModal = function () {
     const modal = document.getElementById('deployModal');
     if (modal) modal.classList.add('hidden');
 };

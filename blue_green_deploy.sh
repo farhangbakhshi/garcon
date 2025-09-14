@@ -86,7 +86,7 @@ log() {
 generate_uuid() {
     if command -v uuidgen &> /dev/null; then
         uuidgen | tr '[:upper:]' '[:lower:]'
-    elif [ -f /proc/sys/kernel/random/uuid ]; then
+        elif [ -f /proc/sys/kernel/random/uuid ]; then
         cat /proc/sys/kernel/random/uuid
     else
         # Fallback: generate pseudo-random UUID
@@ -142,12 +142,12 @@ check_container_health() {
         if [ "$health_status" = "healthy" ]; then
             log "INFO" "Container $container_name is healthy"
             return 0
-        elif [ "$health_status" = "unhealthy" ]; then
+            elif [ "$health_status" = "unhealthy" ]; then
             log "WARNING" "Container $container_name is unhealthy"
             # Get health check logs
             docker inspect --format='{{.State.Health.Log}}' "$container_name" >> "$LOG_FILE" 2>&1 || true
             return 1
-        elif [ "$health_status" = "no-health-check" ]; then
+            elif [ "$health_status" = "no-health-check" ]; then
             # If no health check is defined, check if container is running and responsive
             log "DEBUG" "No health check defined for $container_name, checking basic responsiveness"
             
@@ -230,10 +230,10 @@ main() {
         echo "Usage: $0 <repository_url>"
         exit 1
     fi
-
+    
     # Validate prerequisites before starting
     validate_prerequisites
-
+    
     REPO_NAME=$(basename -s .git "$REPO_URL")
     TARGET_DIR="$BASE_DIR/$REPO_NAME"
     DEPLOYMENT_UUID=$(generate_uuid)
@@ -242,7 +242,7 @@ main() {
     log "INFO" "Deployment UUID: $DEPLOYMENT_UUID"
     log "INFO" "Repository URL: $REPO_URL"
     log "INFO" "Target directory: $TARGET_DIR"
-
+    
     # Ensure Traefik infrastructure is set up
     log "INFO" "Ensuring Traefik infrastructure is ready"
     if bash "$SCRIPT_DIR/setup-traefik.sh" >> "$LOG_FILE" 2>&1; then
@@ -251,13 +251,13 @@ main() {
         log "ERROR" "Failed to setup Traefik infrastructure"
         exit 1
     fi
-
+    
     mkdir -p "$BASE_DIR"
     log "INFO" "Created base directory: $BASE_DIR"
-
+    
     # Track if this is a fresh clone
     IS_FRESH_CLONE=false
-
+    
     # Git operations
     if [ -d "$TARGET_DIR/.git" ]; then
         log "INFO" "Existing repository found, pulling latest changes"
@@ -272,7 +272,7 @@ main() {
             echo "$git_output" >> "$LOG_FILE"
             exit 1
         fi
-    elif [ -d "$TARGET_DIR" ]; then
+        elif [ -d "$TARGET_DIR" ]; then
         log "WARNING" "Directory exists but is not a git repository, removing it"
         if rm -rf "$TARGET_DIR" >> "$LOG_FILE" 2>&1; then
             log "INFO" "Removed existing non-git directory"
@@ -305,19 +305,19 @@ main() {
             exit 1
         fi
     fi
-
+    
     # Check if docker-compose.yml, docker-compose.yaml, compose.yml, or compose.yaml exists
     COMPOSE_FILE=""
     if [ -f "$TARGET_DIR/docker-compose.yml" ]; then
         COMPOSE_FILE="$TARGET_DIR/docker-compose.yml"
         log "INFO" "Found docker-compose.yml in repository $REPO_NAME"
-    elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
+        elif [ -f "$TARGET_DIR/docker-compose.yaml" ]; then
         COMPOSE_FILE="$TARGET_DIR/docker-compose.yaml"
         log "INFO" "Found docker-compose.yaml in repository $REPO_NAME"
-    elif [ -f "$TARGET_DIR/compose.yml" ]; then
+        elif [ -f "$TARGET_DIR/compose.yml" ]; then
         COMPOSE_FILE="$TARGET_DIR/compose.yml"
         log "INFO" "Found compose.yml in repository $REPO_NAME"
-    elif [ -f "$TARGET_DIR/compose.yaml" ]; then
+        elif [ -f "$TARGET_DIR/compose.yaml" ]; then
         COMPOSE_FILE="$TARGET_DIR/compose.yaml"
         log "INFO" "Found compose.yaml in repository $REPO_NAME"
     else
@@ -325,11 +325,11 @@ main() {
         log "ERROR" "Deployment failed: missing docker-compose configuration file"
         exit 1
     fi
-
+    
     # Backup original compose file
     cp "$COMPOSE_FILE" "$COMPOSE_FILE.backup"
     log "INFO" "Created backup of $(basename "$COMPOSE_FILE")"
-
+    
     # Modify compose file for Traefik integration (only for fresh clones)
     if [ "$IS_FRESH_CLONE" = "true" ]; then
         log "INFO" "Modifying $(basename "$COMPOSE_FILE") for Traefik integration"
@@ -337,10 +337,10 @@ main() {
         PYTHON_EXEC="python3"
         if [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
             PYTHON_EXEC="$SCRIPT_DIR/.venv/bin/python"
-        elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
+            elif [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
             PYTHON_EXEC="$SCRIPT_DIR/venv/bin/python"
         fi
-
+        
         if python_output=$("$PYTHON_EXEC" -c "
 import sys
 sys.path.append('$SCRIPT_DIR')
@@ -348,7 +348,7 @@ from app.traefik_utils import DockerComposeModifier
 modifier = DockerComposeModifier('$COMPOSE_FILE', '$REPO_NAME')
 success = modifier.modify_compose_file()
 sys.exit(0 if success else 1)
-" 2>&1); then
+            " 2>&1); then
             log "INFO" "Successfully modified docker-compose.yml for Traefik"
             echo "$python_output" >> "$LOG_FILE"
         else
@@ -359,7 +359,7 @@ sys.exit(0 if success else 1)
     else
         log "INFO" "Repository already exists, skipping Traefik modification of $(basename "$COMPOSE_FILE")"
     fi
-
+    
     # Blue-Green Deployment Process
     log "INFO" "Starting blue-green deployment process"
     
@@ -385,19 +385,19 @@ import sys
 try:
     with open('$COMPOSE_FILE', 'r') as f:
         compose_data = yaml.safe_load(f)
-    
+
     # Add project label and update container names
     if 'services' in compose_data:
         for service_name, service_config in compose_data['services'].items():
             # Add project label for identification
             if 'labels' not in service_config:
                 service_config['labels'] = []
-            
+
             if isinstance(service_config['labels'], list):
                 service_config['labels'].append('project=$REPO_NAME')
             elif isinstance(service_config['labels'], dict):
                 service_config['labels']['project'] = '$REPO_NAME'
-            
+
             # Handle services with deploy.replicas differently
             if 'deploy' in service_config and 'replicas' in service_config['deploy']:
                 # For services with replicas, remove deploy section and set container name
@@ -408,15 +408,15 @@ try:
             else:
                 # For regular services, set container name normally
                 service_config['container_name'] = f'{service_name}-$DEPLOYMENT_UUID'
-    
+
     with open('$TEMP_COMPOSE_FILE', 'w') as f:
         yaml.dump(compose_data, f, default_flow_style=False, sort_keys=False)
-    
+
     print('Successfully created UUID-tagged compose file')
 except Exception as e:
     print(f'Error: {e}', file=sys.stderr)
     sys.exit(1)
-" 2>&1); then
+        " 2>&1); then
         log "INFO" "Created UUID-tagged compose file: $python_output"
         echo "$python_output" >> "$LOG_FILE"
     else
@@ -424,13 +424,13 @@ except Exception as e:
         echo "$python_output" >> "$LOG_FILE"
         exit 1
     fi
-
+    
     # Build and start new containers (Green deployment)
     log "INFO" "Building and starting new containers (Green deployment)"
     
     docker compose -f "$TEMP_COMPOSE_FILE" up -d --build 2>&1 | tee -a "$LOG_FILE"
     exit_code=${PIPESTATUS[0]}
-
+    
     if [ $exit_code -eq 0 ]; then
         log "INFO" "Successfully built and started new containers"
     else
@@ -518,7 +518,7 @@ except Exception as e:
     else
         log "WARNING" "Could not identify primary container"
     fi
-
+    
     log "INFO" "Blue-green deployment completed successfully for $REPO_NAME"
     log "INFO" "Deployment UUID: $DEPLOYMENT_UUID"
 }

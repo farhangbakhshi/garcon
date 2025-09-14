@@ -1,5 +1,14 @@
 import subprocess
-from flask import Blueprint, request, jsonify, current_app, render_template, flash, redirect, url_for
+from flask import (
+    Blueprint,
+    request,
+    jsonify,
+    current_app,
+    render_template,
+    flash,
+    redirect,
+    url_for,
+)
 from . import services
 from .utils import verify_github_webhook
 import logging
@@ -17,31 +26,32 @@ def dashboard():
         service = services.Services()
         recent_deployments = service.db.get_recent_deployments(5)
         all_projects = service.db.get_all_projects()
-        
+
         # Add URLs and actual status for each project
         for project in all_projects:
-            project['urls'] = service.get_project_urls(project['repo_name'])
-            project['actual_status'] = service.get_project_status(project)
-        
+            project["urls"] = service.get_project_urls(project["repo_name"])
+            project["actual_status"] = service.get_project_status(project)
+
         # Calculate stats for the dashboard using efficient count methods
         stats = {
-            'total_projects': service.db.get_project_count(),
-            'total_deployments': service.db.get_deployment_count()
+            "total_projects": service.db.get_project_count(),
+            "total_deployments": service.db.get_deployment_count(),
         }
-            
-        return render_template('dashboard.html', 
-                             recent_deployments=recent_deployments,
-                             projects=all_projects,
-                             stats=stats)
+
+        return render_template(
+            "dashboard.html",
+            recent_deployments=recent_deployments,
+            projects=all_projects,
+            stats=stats,
+        )
     except Exception as e:
         logging.error(f"Error loading dashboard: {str(e)}")
-        flash('Error loading dashboard data', 'error')
+        flash("Error loading dashboard data", "error")
         # Provide empty stats to prevent template errors
-        empty_stats = {'total_projects': 0, 'total_deployments': 0}
-        return render_template('dashboard.html', 
-                             recent_deployments=[],
-                             projects=[],
-                             stats=empty_stats)
+        empty_stats = {"total_projects": 0, "total_deployments": 0}
+        return render_template(
+            "dashboard.html", recent_deployments=[], projects=[], stats=empty_stats
+        )
 
 
 @bp.route("/projects_ui")
@@ -50,129 +60,129 @@ def projects_ui():
     try:
         service = services.Services()
         projects = service.db.get_all_projects()
-        
+
         # Add URLs, deployment status, and actual status for each project
         for project in projects:
-            project['urls'] = service.get_project_urls(project['repo_name'])
-            project['actual_status'] = service.get_project_status(project)
+            project["urls"] = service.get_project_urls(project["repo_name"])
+            project["actual_status"] = service.get_project_status(project)
             # Get latest deployment status
-            deployments = service.db.get_deployment_history(project['id'], limit=1)
-            project['latest_deployment'] = deployments[0] if deployments else None
-            
-        return render_template('projects.html', projects=projects)
+            deployments = service.db.get_deployment_history(project["id"], limit=1)
+            project["latest_deployment"] = deployments[0] if deployments else None
+
+        return render_template("projects.html", projects=projects)
     except Exception as e:
         logging.error(f"Error loading projects: {str(e)}")
-        flash('Error loading projects', 'error')
-        return render_template('projects.html', projects=[])
+        flash("Error loading projects", "error")
+        return render_template("projects.html", projects=[])
 
 
 @bp.route("/add_project", methods=["GET", "POST"])
 def add_project_form():
     """Add new project web interface."""
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             # Get form data - using the field names that match the template and JavaScript
-            name = request.form.get('name')
-            git_url = request.form.get('git_url')
-            domain = request.form.get('domain')
-            deployment_type = request.form.get('deployment_type', 'blue-green')
-            deploy_immediately = request.form.get('deploy_immediately') == 'on'
-            
+            name = request.form.get("name")
+            git_url = request.form.get("git_url")
+            domain = request.form.get("domain")
+            deployment_type = request.form.get("deployment_type", "blue-green")
+            deploy_immediately = request.form.get("deploy_immediately") == "on"
+
             if not all([name, git_url, domain]):
-                flash('All fields are required', 'error')
-                return render_template('add_project.html')
-            
+                flash("All fields are required", "error")
+                return render_template("add_project.html")
+
             service = services.Services()
-            
+
             # Create project using the provided name and git_url
             project = service.get_or_create_project(name, git_url)
             if project:
-                flash(f'Project "{name}" added successfully!', 'success')
-                
+                flash(f'Project "{name}" added successfully!', "success")
+
                 # TODO: Store domain information if needed in the database
                 # For now, we're storing it in the project name/repo_name field
-                
+
                 # Deploy immediately if requested
                 if deploy_immediately:
                     try:
                         # Log deployment attempt
                         service.log_deployment_status(
-                            project['id'], 
-                            'started',
-                            deployment_type=deployment_type
+                            project["id"], "started", deployment_type=deployment_type
                         )
-                        
+
                         # Choose deployment script
                         current_dir = Path(__file__).parent.parent
-                        if deployment_type == 'blue-green':
+                        if deployment_type == "blue-green":
                             deploy_script = current_dir / "blue_green_deploy.sh"
                         else:
                             deploy_script = current_dir / "deploy.sh"
-                        
+
                         # Run deployment in background
                         import threading
-                        
+
                         def run_deployment():
                             try:
                                 result = subprocess.run(
-                                    [str(deploy_script), git_url], 
+                                    [str(deploy_script), git_url],
                                     check=True,
                                     capture_output=True,
                                     text=True,
-                                    timeout=600
+                                    timeout=600,
                                 )
-                                
+
                                 # Extract deployment info
                                 container_id = None
                                 deployment_uuid = None
-                                
-                                for line in result.stdout.strip().split('\n'):
+
+                                for line in result.stdout.strip().split("\n"):
                                     if line.startswith("CONTAINER_ID:"):
-                                        container_id = line.split(':', 1)[1].strip()
+                                        container_id = line.split(":", 1)[1].strip()
                                     elif line.startswith("DEPLOYMENT_UUID:"):
-                                        deployment_uuid = line.split(':', 1)[1].strip()
-                                
+                                        deployment_uuid = line.split(":", 1)[1].strip()
+
                                 # Log success
                                 service.log_deployment_status(
-                                    project['id'], 
-                                    'success',
+                                    project["id"],
+                                    "success",
                                     container_id=container_id,
                                     deployment_uuid=deployment_uuid,
-                                    deployment_type=deployment_type
+                                    deployment_type=deployment_type,
                                 )
-                                
+
                                 logging.info(f"Initial deployment completed for {name}")
-                                
+
                             except Exception as e:
                                 error_msg = f"Initial deployment failed: {str(e)}"
                                 logging.error(error_msg)
                                 service.log_deployment_status(
-                                    project['id'], 
-                                    'failed', 
+                                    project["id"],
+                                    "failed",
                                     error_message=error_msg,
-                                    deployment_type=deployment_type
+                                    deployment_type=deployment_type,
                                 )
-                        
+
                         # Start deployment in background
                         deployment_thread = threading.Thread(target=run_deployment)
                         deployment_thread.daemon = True
                         deployment_thread.start()
-                        
-                        flash('Deployment started successfully!', 'info')
-                        
+
+                        flash("Deployment started successfully!", "info")
+
                     except Exception as deploy_e:
-                        logging.error(f"Error starting initial deployment: {str(deploy_e)}")
-                        flash('Project added but deployment failed to start', 'warning')
-                
-                return redirect(url_for('main.projects_ui'))
+                        logging.error(
+                            f"Error starting initial deployment: {str(deploy_e)}"
+                        )
+                        flash("Project added but deployment failed to start", "warning")
+
+                return redirect(url_for("main.projects_ui"))
             else:
-                flash('Error creating project', 'error')
-                
+                flash("Error creating project", "error")
+
         except Exception as e:
             logging.error(f"Error adding project: {str(e)}")
-            flash('Error adding project', 'error')
-    
-    return render_template('add_project.html')
+            flash("Error adding project", "error")
+
+    return render_template("add_project.html")
 
 
 @bp.route("/project/<project_name>")
@@ -181,28 +191,30 @@ def project_detail(project_name):
     try:
         service = services.Services()
         project = service.db.get_project_by_repo_name(project_name)
-        
+
         if not project:
-            flash('Project not found', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
+            flash("Project not found", "error")
+            return redirect(url_for("main.projects_ui"))
+
         # Get deployment history
-        deployments = service.db.get_deployment_history(project['id'])
-        
+        deployments = service.db.get_deployment_history(project["id"])
+
         # Get project URLs
-        project['urls'] = service.get_project_urls(project_name)
-        
+        project["urls"] = service.get_project_urls(project_name)
+
         # Get actual project status by checking if containers are running
-        project['actual_status'] = service.get_project_status(project)
-        
-        return render_template('project_detail.html', 
-                             project=project,
-                             deployments=deployments,
-                             project_urls=project['urls'])
+        project["actual_status"] = service.get_project_status(project)
+
+        return render_template(
+            "project_detail.html",
+            project=project,
+            deployments=deployments,
+            project_urls=project["urls"],
+        )
     except Exception as e:
         logging.error(f"Error loading project {project_name}: {str(e)}")
-        flash('Error loading project details', 'error')
-        return redirect(url_for('main.projects_ui'))
+        flash("Error loading project details", "error")
+        return redirect(url_for("main.projects_ui"))
 
 
 @bp.route("/deployment_history")
@@ -211,12 +223,12 @@ def deployment_history_ui():
     try:
         service = services.Services()
         deployments = service.db.get_recent_deployments(50)  # Get last 50 deployments
-        
-        return render_template('deployment_history.html', deployments=deployments)
+
+        return render_template("deployment_history.html", deployments=deployments)
     except Exception as e:
         logging.error(f"Error loading deployment history: {str(e)}")
-        flash('Error loading deployment history', 'error')
-        return render_template('deployment_history.html', deployments=[])
+        flash("Error loading deployment history", "error")
+        return render_template("deployment_history.html", deployments=[])
 
 
 @bp.route("/logs_ui")
@@ -224,60 +236,64 @@ def view_logs_ui():
     """Logs viewer web interface."""
     try:
         current_dir = Path(__file__).parent.parent
-        
+
         # Read recent logs
         app_log_file = current_dir / "logs" / "app.log"
         deploy_log_file = current_dir / "logs" / "deploy.log"
-        
+
         app_logs = ""
         deploy_logs = ""
         log_stats = {}
-        
+
         if app_log_file.exists():
-            with open(app_log_file, 'r') as f:
+            with open(app_log_file, "r") as f:
                 lines = f.readlines()
-                app_logs = ''.join(lines[-50:]) if lines else "No application logs yet."
-            
+                app_logs = "".join(lines[-50:]) if lines else "No application logs yet."
+
             # Get file stats
             stat = app_log_file.stat()
-            log_stats['app_log_size'] = f"{stat.st_size / 1024:.1f} KB"
+            log_stats["app_log_size"] = f"{stat.st_size / 1024:.1f} KB"
         else:
             app_logs = "Application log file not found."
-            log_stats['app_log_size'] = "N/A"
-        
+            log_stats["app_log_size"] = "N/A"
+
         if deploy_log_file.exists():
-            with open(deploy_log_file, 'r') as f:
+            with open(deploy_log_file, "r") as f:
                 lines = f.readlines()
-                deploy_logs = ''.join(lines[-100:]) if lines else "No deployment logs yet."
-            
+                deploy_logs = (
+                    "".join(lines[-100:]) if lines else "No deployment logs yet."
+                )
+
             # Get file stats
             stat = deploy_log_file.stat()
-            log_stats['deploy_log_size'] = f"{stat.st_size / 1024:.1f} KB"
-            log_stats['last_modified'] = stat.st_mtime
+            log_stats["deploy_log_size"] = f"{stat.st_size / 1024:.1f} KB"
+            log_stats["last_modified"] = stat.st_mtime
         else:
             deploy_logs = "Deployment log file not found."
-            log_stats['deploy_log_size'] = "N/A"
-        
+            log_stats["deploy_log_size"] = "N/A"
+
         # Format last modified time
-        if 'last_modified' in log_stats:
+        if "last_modified" in log_stats:
             import datetime
-            log_stats['last_modified'] = datetime.datetime.fromtimestamp(
-                log_stats['last_modified']
-            ).strftime('%Y-%m-%d %H:%M:%S')
+
+            log_stats["last_modified"] = datetime.datetime.fromtimestamp(
+                log_stats["last_modified"]
+            ).strftime("%Y-%m-%d %H:%M:%S")
         else:
-            log_stats['last_modified'] = "N/A"
-        
-        return render_template('logs.html', 
-                             app_logs=app_logs,
-                             deploy_logs=deploy_logs,
-                             log_stats=log_stats)
+            log_stats["last_modified"] = "N/A"
+
+        return render_template(
+            "logs.html", app_logs=app_logs, deploy_logs=deploy_logs, log_stats=log_stats
+        )
     except Exception as e:
         logging.error(f"Error loading logs: {str(e)}")
-        flash('Error loading logs', 'error')
-        return render_template('logs.html', 
-                             app_logs="Error loading logs",
-                             deploy_logs="Error loading logs",
-                             log_stats={})
+        flash("Error loading logs", "error")
+        return render_template(
+            "logs.html",
+            app_logs="Error loading logs",
+            deploy_logs="Error loading logs",
+            log_stats={},
+        )
 
 
 @bp.route("/deploy", methods=["POST"])
@@ -285,24 +301,23 @@ def deploy_project():
     """Deploy a project via web interface."""
     try:
         data = request.get_json() if request.is_json else request.form
-        project_id = data.get('project_id')
-        deployment_type = data.get('deployment_type', 'blue-green')
-        
+        project_id = data.get("project_id")
+        deployment_type = data.get("deployment_type", "blue-green")
+
         if not project_id:
             if request.is_json:
-                return jsonify(success=False, error='Project ID is required'), 400
-            flash('Project ID is required', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
+                return jsonify(success=False, error="Project ID is required"), 400
+            flash("Project ID is required", "error")
+            return redirect(url_for("main.projects_ui"))
+
         service = services.Services()
         project = service.db.get_project_by_id(project_id)
-        
+
         if not project:
             if request.is_json:
-                return jsonify(success=False, error='Project not found'), 404
-            flash('Project not found', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
+                return jsonify(success=False, error="Project not found"), 404
+            flash("Project not found", "error")
+            return redirect(url_for("main.projects_ui"))
 
         # --- File-based deployment lock to prevent concurrent deployments ---
         import fcntl
@@ -311,53 +326,64 @@ def deploy_project():
         import sqlite3
         from datetime import datetime, timedelta
         from pathlib import Path
-        
-        project_name = project['repo_name']
+
+        project_name = project["repo_name"]
         lock_dir = Path(__file__).parent.parent / "locks"
         lock_dir.mkdir(exist_ok=True)
         lock_file_path = lock_dir / f"deploy_{project_name}.lock"
         lock_file = None
-        
+
         try:
             # Try to acquire exclusive lock
-            lock_file = open(lock_file_path, 'w')
+            lock_file = open(lock_file_path, "w")
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            
+
             # Write process info to lock file
-            lock_file.write(f"PID: {os.getpid()}\nProject: {project_name}\nTime: {datetime.now()}\n")
+            lock_file.write(
+                f"PID: {os.getpid()}\nProject: {project_name}\nTime: {datetime.now()}\n"
+            )
             lock_file.flush()
-            
+
             logging.info(f"Acquired deployment lock for project {project_name}")
-            
+
         except (IOError, OSError) as e:
             if lock_file:
                 lock_file.close()
                 lock_file = None
-            error_msg = f'A deployment is already in progress for project {project_name}'
-            logging.warning(f"Failed to acquire deployment lock for {project_name}: {str(e)}")
+            error_msg = (
+                f"A deployment is already in progress for project {project_name}"
+            )
+            logging.warning(
+                f"Failed to acquire deployment lock for {project_name}: {str(e)}"
+            )
             if request.is_json:
                 return jsonify(success=False, error=error_msg), 409
-            flash(error_msg, 'warning')
-            return redirect(url_for('main.project_detail', project_name=project_name))
-        
+            flash(error_msg, "warning")
+            return redirect(url_for("main.project_detail", project_name=project_name))
+
         db_path = service.db.db_path
         ten_minutes_ago = datetime.now() - timedelta(minutes=10)
-        ten_minutes_ago_str = ten_minutes_ago.strftime('%Y-%m-%d %H:%M:%S')
-        
+        ten_minutes_ago_str = ten_minutes_ago.strftime("%Y-%m-%d %H:%M:%S")
+
         try:
             with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
                 # Find stuck deployments for this project (deployments started more than 10 minutes ago)
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE deployments 
                     SET status='failed', error_message='Auto-failed: stuck deployment (timeout)' 
                     WHERE project_id=? AND status='started' AND deploy_time < ?
-                ''', (project_id, ten_minutes_ago_str))
-                
+                """,
+                    (project_id, ten_minutes_ago_str),
+                )
+
                 rows_updated = cursor.rowcount
                 if rows_updated > 0:
-                    logging.info(f"Auto-failed {rows_updated} stuck deployments for project {project_id}")
-                    
+                    logging.info(
+                        f"Auto-failed {rows_updated} stuck deployments for project {project_id}"
+                    )
+
                 conn.commit()
         except Exception as e:
             logging.error(f"Error auto-failing stuck deployments: {e}")
@@ -367,171 +393,203 @@ def deploy_project():
         deployment_id = None
         try:
             with sqlite3.connect(db_path) as conn:
-                conn.execute('BEGIN IMMEDIATE')  # Start exclusive transaction
+                conn.execute("BEGIN IMMEDIATE")  # Start exclusive transaction
                 cursor = conn.cursor()
-                
+
                 # Check for active deployments
-                cursor.execute('''
+                cursor.execute(
+                    """
                     SELECT id, status, deploy_time FROM deployments 
                     WHERE project_id=? AND status='started' 
                     ORDER BY deploy_time DESC LIMIT 1
-                ''', (project_id,))
-                
+                """,
+                    (project_id,),
+                )
+
                 active_deployment = cursor.fetchone()
-                
+
                 if active_deployment:
                     conn.rollback()
-                    error_msg = f'A deployment is already in progress for this project (ID: {active_deployment[0]})'
-                    logging.warning(f"Deployment blocked for project {project_id}: {error_msg}")
+                    error_msg = f"A deployment is already in progress for this project (ID: {active_deployment[0]})"
+                    logging.warning(
+                        f"Deployment blocked for project {project_id}: {error_msg}"
+                    )
                     if request.is_json:
                         return jsonify(success=False, error=error_msg), 409
-                    flash(error_msg, 'warning')
-                    return redirect(url_for('main.project_detail', project_name=project['repo_name']))
-                
+                    flash(error_msg, "warning")
+                    return redirect(
+                        url_for(
+                            "main.project_detail", project_name=project["repo_name"]
+                        )
+                    )
+
                 # Start new deployment record immediately to prevent race conditions
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO deployments (project_id, status, deployment_type)
                     VALUES (?, 'started', ?)
-                ''', (project_id, deployment_type))
-                
+                """,
+                    (project_id, deployment_type),
+                )
+
                 deployment_id = cursor.lastrowid
                 conn.commit()
-                logging.info(f"Created deployment record {deployment_id} for project {project_id}")
-                
+                logging.info(
+                    f"Created deployment record {deployment_id} for project {project_id}"
+                )
+
         except sqlite3.Error as e:
             logging.error(f"Database error during deployment check: {e}")
             if request.is_json:
-                return jsonify(success=False, error='Database error'), 500
-            flash('Database error occurred', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
+                return jsonify(success=False, error="Database error"), 500
+            flash("Database error occurred", "error")
+            return redirect(url_for("main.projects_ui"))
+
         # Trigger deployment using existing logic (deployment record already created above)
-        repo_url = project['repo_url']
-        project_name = project['repo_name']
-        
+        repo_url = project["repo_url"]
+        project_name = project["repo_name"]
+
         logging.info(f"Web UI deployment triggered for {project_name}")
-        
+
         # Note: Deployment record already created above with ID {deployment_id}
-        
+
         # Choose deployment script
         current_dir = Path(__file__).parent.parent
-        if deployment_type == 'blue-green':
+        if deployment_type == "blue-green":
             deploy_script = current_dir / "blue_green_deploy.sh"
         else:
             deploy_script = current_dir / "deploy.sh"
-        
+
         # Run deployment in background for web UI
         import threading
-        
+
         def run_deployment():
             deployment_lock_file = None
             try:
                 # Re-open the lock file in this thread to maintain the lock
-                deployment_lock_file = open(lock_file_path, 'a')
-                fcntl.flock(deployment_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                logging.info(f"Background thread acquired deployment lock for project {project_name}")
-                
+                deployment_lock_file = open(lock_file_path, "a")
+                fcntl.flock(
+                    deployment_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
+                )
+                logging.info(
+                    f"Background thread acquired deployment lock for project {project_name}"
+                )
+
                 result = subprocess.run(
-                    [str(deploy_script), repo_url], 
+                    [str(deploy_script), repo_url],
                     check=True,
                     capture_output=True,
                     text=True,
-                    timeout=600
+                    timeout=600,
                 )
-                
+
                 # Extract deployment info
                 container_id = None
                 deployment_uuid = None
-                
-                for line in result.stdout.strip().split('\n'):
+
+                for line in result.stdout.strip().split("\n"):
                     if line.startswith("CONTAINER_ID:"):
-                        container_id = line.split(':', 1)[1].strip()
+                        container_id = line.split(":", 1)[1].strip()
                     elif line.startswith("DEPLOYMENT_UUID:"):
-                        deployment_uuid = line.split(':', 1)[1].strip()
-                
+                        deployment_uuid = line.split(":", 1)[1].strip()
+
                 # Update existing deployment record with success
                 try:
                     with sqlite3.connect(db_path) as conn:
                         cursor = conn.cursor()
-                        cursor.execute('''
+                        cursor.execute(
+                            """
                             UPDATE deployments 
                             SET status='success', container_id=?, deployment_uuid=?
                             WHERE id=?
-                        ''', (container_id, deployment_uuid, deployment_id))
+                        """,
+                            (container_id, deployment_uuid, deployment_id),
+                        )
                         conn.commit()
-                        logging.info(f"Updated deployment {deployment_id} with success status")
+                        logging.info(
+                            f"Updated deployment {deployment_id} with success status"
+                        )
                 except sqlite3.Error as e:
                     logging.error(f"Error updating deployment status: {e}")
-                
+
                 logging.info(f"Web UI deployment completed for {project_name}")
-                
+
             except Exception as e:
                 error_msg = f"Web UI deployment failed: {str(e)}"
                 logging.error(error_msg)
-                
+
                 # Update existing deployment record with failure
                 try:
                     with sqlite3.connect(db_path) as conn:
                         cursor = conn.cursor()
-                        cursor.execute('''
+                        cursor.execute(
+                            """
                             UPDATE deployments 
                             SET status='failed', error_message=?
                             WHERE id=?
-                        ''', (error_msg, deployment_id))
+                        """,
+                            (error_msg, deployment_id),
+                        )
                         conn.commit()
-                        logging.info(f"Updated deployment {deployment_id} with failed status")
+                        logging.info(
+                            f"Updated deployment {deployment_id} with failed status"
+                        )
                 except sqlite3.Error as e:
                     logging.error(f"Error updating deployment status: {e}")
-            
+
             finally:
                 # Release the file lock when deployment completes
                 if deployment_lock_file:
                     try:
                         fcntl.flock(deployment_lock_file.fileno(), fcntl.LOCK_UN)
                         deployment_lock_file.close()
-                        logging.info(f"Released deployment lock for project {project_name} from background thread")
-                        
+                        logging.info(
+                            f"Released deployment lock for project {project_name} from background thread"
+                        )
+
                         # Clean up lock file
                         try:
                             os.remove(lock_file_path)
                         except OSError:
                             pass  # File may already be removed
                     except Exception as e:
-                        logging.error(f"Error releasing deployment lock from background thread: {e}")
-        
+                        logging.error(
+                            f"Error releasing deployment lock from background thread: {e}"
+                        )
+
         # Start deployment in background
         deployment_thread = threading.Thread(target=run_deployment)
         deployment_thread.daemon = True
         deployment_thread.start()
-        
+
         # Release the main thread's lock immediately since background thread will handle it
         if lock_file:
             lock_file.close()
             lock_file = None
-        
+
         if request.is_json:
-            return jsonify(success=True, message='Deployment started successfully')
-        
-        flash('Deployment started successfully!', 'success')
-        return redirect(url_for('main.project_detail', project_name=project_name))
-        
+            return jsonify(success=True, message="Deployment started successfully")
+
+        flash("Deployment started successfully!", "success")
+        return redirect(url_for("main.project_detail", project_name=project_name))
+
     except Exception as e:
         error_msg = f"Error starting deployment: {str(e)}"
         logging.error(error_msg)
-        
+
         if request.is_json:
             return jsonify(success=False, error=error_msg), 500
-        
-        flash('Error starting deployment', 'error')
-        return redirect(url_for('main.projects_ui'))
+
+        flash("Error starting deployment", "error")
+        return redirect(url_for("main.projects_ui"))
 
 
 @bp.route("/webhook", methods=["POST"])
 def webhook():
     # Verify the webhook signature first
-    signature = request.headers.get('X-Hub-Signature-256')
-    webhook_secret = current_app.config.get('GITHUB_WEBHOOK_SECRET')
-    
+    signature = request.headers.get("X-Hub-Signature-256")
+    webhook_secret = current_app.config.get("GITHUB_WEBHOOK_SECRET")
+
     if not verify_github_webhook(request.get_data(), signature, webhook_secret):
         logging.warning("Invalid webhook signature received")
         return jsonify(error="Unauthorized"), 403
@@ -541,170 +599,184 @@ def webhook():
 
         service = services.Services()
         processed_data = service.process_webhook(payload)
-        
-        if not processed_data['repo_name']:
+
+        if not processed_data["repo_name"]:
             return jsonify(error="Invalid payload: missing repository name"), 400
-        
+
         # Get or create project in database
         project = service.get_or_create_project(
-            processed_data['repo_name'], 
-            processed_data['repo_url']
+            processed_data["repo_name"], processed_data["repo_url"]
         )
-        
+
         if not project:
-            logging.error(f"Failed to create/retrieve project: {processed_data['repo_name']}")
+            logging.error(
+                f"Failed to create/retrieve project: {processed_data['repo_name']}"
+            )
             return jsonify(error="Database error"), 500
-        
+
         # Configure logging to write to ../logs/app.log
         current_dir = Path(__file__).parent.parent
-        
+
         try:
             # Log deployment attempt
             service.log_deployment_status(
-                project['id'], 
-                'started', 
-                processed_data.get('commit_hash')
+                project["id"], "started", processed_data.get("commit_hash")
             )
-            
+
             # Run the blue-green deployment script by default
             deploy_script = current_dir / "blue_green_deploy.sh"
-            
-            logging.info(f"Starting blue-green deployment for {processed_data['repo_name']}")
+
+            logging.info(
+                f"Starting blue-green deployment for {processed_data['repo_name']}"
+            )
             logging.debug(f"Using deployment script: {deploy_script}")
             logging.debug(f"Repository URL: {processed_data['repo_url']}")
-            
+
             result = subprocess.run(
-                [str(deploy_script), processed_data["repo_url"]], 
+                [str(deploy_script), processed_data["repo_url"]],
                 check=True,
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout
+                timeout=600,  # 10 minute timeout
             )
-            
+
             logging.debug(f"Deployment script stdout: {result.stdout}")
             logging.debug(f"Deployment script stderr: {result.stderr}")
-            
+
             # Extract container ID and deployment UUID from the script's output
             container_id = None
             deployment_uuid = None
-            
+
             # Parse both stdout and stderr for the output markers
             full_output = result.stdout + "\n" + result.stderr
-            
-            for line in full_output.strip().split('\n'):
+
+            for line in full_output.strip().split("\n"):
                 line = line.strip()
                 if line.startswith("CONTAINER_ID:"):
-                    container_id = line.split(':', 1)[1].strip()
+                    container_id = line.split(":", 1)[1].strip()
                     logging.info(f"Extracted container ID: {container_id}")
                 elif line.startswith("DEPLOYMENT_UUID:"):
-                    deployment_uuid = line.split(':', 1)[1].strip()
+                    deployment_uuid = line.split(":", 1)[1].strip()
                     logging.info(f"Extracted deployment UUID: {deployment_uuid}")
-            
+
             # If we can't extract from output, try to get from log file
             if not container_id or not deployment_uuid:
-                logging.warning("Could not extract container ID or UUID from script output, checking log file")
+                logging.warning(
+                    "Could not extract container ID or UUID from script output, checking log file"
+                )
                 log_file_path = current_dir / "logs" / "deploy.log"
                 try:
-                    with open(log_file_path, 'r') as log_file:
+                    with open(log_file_path, "r") as log_file:
                         log_lines = log_file.readlines()[-50:]  # Check last 50 lines
                         for line in log_lines:
-                            if "Primary container deployed:" in line and not container_id:
+                            if (
+                                "Primary container deployed:" in line
+                                and not container_id
+                            ):
                                 # Extract container ID from log line
                                 parts = line.split("Primary container deployed:")
                                 if len(parts) > 1:
                                     container_id = parts[1].strip()
-                                    logging.info(f"Extracted container ID from log: {container_id}")
+                                    logging.info(
+                                        f"Extracted container ID from log: {container_id}"
+                                    )
                             elif "Deployment UUID:" in line and not deployment_uuid:
                                 # Extract UUID from log line
                                 parts = line.split("Deployment UUID:")
                                 if len(parts) > 1:
                                     deployment_uuid = parts[1].strip()
-                                    logging.info(f"Extracted deployment UUID from log: {deployment_uuid}")
+                                    logging.info(
+                                        f"Extracted deployment UUID from log: {deployment_uuid}"
+                                    )
                 except Exception as log_e:
                     logging.warning(f"Could not read deploy log: {log_e}")
-            
+
             # Update project with new container information
             if container_id:
                 service.update_project_deployment_info(
-                    processed_data['repo_name'],
-                    container_id=container_id
+                    processed_data["repo_name"], container_id=container_id
                 )
-            
+
             # Log successful deployment
             service.log_deployment_status(
-                project['id'], 
-                'success', 
-                processed_data.get('commit_hash'),
+                project["id"],
+                "success",
+                processed_data.get("commit_hash"),
                 container_id=container_id,
                 deployment_uuid=deployment_uuid,
-                deployment_type="blue-green"
+                deployment_type="blue-green",
             )
-            
-            logging.info(f"Blue-green deployment completed successfully for {processed_data['repo_name']}")
-            logging.info(f"Container ID: {container_id}, Deployment UUID: {deployment_uuid}")
-            
-            return jsonify(
-                message="Webhook received and blue-green deployment completed successfully",
-                repository=processed_data['repo_name'],
-                project_id=project['id'],
-                container_id=container_id,
-                deployment_uuid=deployment_uuid,
-                deployment_type="blue-green"
-            ), 200
-            
+
+            logging.info(
+                f"Blue-green deployment completed successfully for {processed_data['repo_name']}"
+            )
+            logging.info(
+                f"Container ID: {container_id}, Deployment UUID: {deployment_uuid}"
+            )
+
+            return (
+                jsonify(
+                    message="Webhook received and blue-green deployment completed successfully",
+                    repository=processed_data["repo_name"],
+                    project_id=project["id"],
+                    container_id=container_id,
+                    deployment_uuid=deployment_uuid,
+                    deployment_type="blue-green",
+                ),
+                200,
+            )
+
         except subprocess.TimeoutExpired as e:
             error_msg = f"Deployment timed out after 10 minutes: {str(e)}"
             logging.error(error_msg)
-            
+
             # Log failed deployment
             service.log_deployment_status(
-                project['id'], 
-                'failed', 
-                processed_data.get('commit_hash'),
+                project["id"],
+                "failed",
+                processed_data.get("commit_hash"),
                 error_message=error_msg,
-                deployment_type="blue-green"
+                deployment_type="blue-green",
             )
-            
-            return jsonify(
-                error="Deployment timed out", 
-                details=error_msg
-            ), 500
-            
+
+            return jsonify(error="Deployment timed out", details=error_msg), 500
+
         except subprocess.CalledProcessError as e:
-            error_msg = f"Blue-green deployment failed: {e.stderr if e.stderr else str(e)}"
+            error_msg = (
+                f"Blue-green deployment failed: {e.stderr if e.stderr else str(e)}"
+            )
             logging.error(error_msg)
-            logging.error(f"Deployment stdout: {e.stdout if hasattr(e, 'stdout') and e.stdout else 'N/A'}")
+            logging.error(
+                f"Deployment stdout: {e.stdout if hasattr(e, 'stdout') and e.stdout else 'N/A'}"
+            )
             logging.error(f"Return code: {e.returncode}")
-            
+
             # Log failed deployment
             service.log_deployment_status(
-                project['id'], 
-                'failed', 
-                processed_data.get('commit_hash'),
+                project["id"],
+                "failed",
+                processed_data.get("commit_hash"),
                 error_message=error_msg,
-                deployment_type="blue-green"
+                deployment_type="blue-green",
             )
-            
-            return jsonify(
-                error="Blue-green deployment failed", 
-                details=error_msg
-            ), 500
-            
+
+            return jsonify(error="Blue-green deployment failed", details=error_msg), 500
+
         except Exception as e:
             error_msg = f"Unexpected error during blue-green deployment: {str(e)}"
             logging.error(error_msg, exc_info=True)  # Include stack trace
-            
+
             # Log failed deployment
             service.log_deployment_status(
-                project['id'], 
-                'failed', 
-                processed_data.get('commit_hash'),
+                project["id"],
+                "failed",
+                processed_data.get("commit_hash"),
                 error_message=error_msg,
-                deployment_type="blue-green"
+                deployment_type="blue-green",
             )
-            
+
             return jsonify(error="Internal server error during deployment"), 500
-            
+
     else:
         return jsonify(error="Request was not JSON"), 400
 
@@ -712,7 +784,7 @@ def webhook():
 @bp.route("/")
 def index():
     """Redirect to dashboard."""
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/projects")
@@ -721,11 +793,11 @@ def list_projects():
     try:
         service = services.Services()
         projects = service.db.get_all_projects()
-        
+
         # Add potential URLs for each project
         for project in projects:
-            project['urls'] = service.get_project_urls(project['repo_name'])
-            
+            project["urls"] = service.get_project_urls(project["repo_name"])
+
         return jsonify(projects=projects), 200
     except Exception as e:
         logging.error(f"Error listing projects: {str(e)}")
@@ -738,16 +810,19 @@ def get_project_urls(project_name):
     try:
         service = services.Services()
         project = service.db.get_project_by_repo_name(project_name)
-        
+
         if not project:
             return jsonify(error="Project not found"), 404
-            
+
         urls = service.get_project_urls(project_name)
-        return jsonify(
-            project=project_name,
-            urls=urls,
-            traefik_dashboard="http://localhost:8080"
-        ), 200
+        return (
+            jsonify(
+                project=project_name,
+                urls=urls,
+                traefik_dashboard="http://localhost:8080",
+            ),
+            200,
+        )
     except Exception as e:
         logging.error(f"Error getting project URLs: {str(e)}")
         return jsonify(error="Failed to retrieve project URLs"), 500
@@ -759,18 +834,21 @@ def get_project_deployments(project_name):
     try:
         service = services.Services()
         project = service.db.get_project_by_repo_name(project_name)
-        
+
         if not project:
             return jsonify(error="Project not found"), 404
-            
-        deployments = service.db.get_deployment_history(project['id'])
-        
-        return jsonify(
-            project=project_name,
-            project_id=project['id'],
-            deployments=deployments,
-            total_deployments=len(deployments)
-        ), 200
+
+        deployments = service.db.get_deployment_history(project["id"])
+
+        return (
+            jsonify(
+                project=project_name,
+                project_id=project["id"],
+                deployments=deployments,
+                total_deployments=len(deployments),
+            ),
+            200,
+        )
     except Exception as e:
         logging.error(f"Error getting deployment history for {project_name}: {str(e)}")
         return jsonify(error="Failed to retrieve deployment history"), 500
@@ -782,11 +860,8 @@ def get_recent_deployments():
     try:
         service = services.Services()
         deployments = service.db.get_recent_deployments()
-        
-        return jsonify(
-            deployments=deployments,
-            total_shown=len(deployments)
-        ), 200
+
+        return jsonify(deployments=deployments, total_shown=len(deployments)), 200
     except Exception as e:
         logging.error(f"Error getting recent deployments: {str(e)}")
         return jsonify(error="Failed to retrieve recent deployments"), 500
@@ -798,98 +873,144 @@ def delete_project(project_name):
     try:
         service = services.Services()
         project = service.db.get_project_by_repo_name(project_name)
-        
+
         if not project:
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify(success=False, error='Project not found'), 404
-            flash('Project not found', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
-        project_id = project['id']
+            if (
+                request.is_json
+                or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            ):
+                return jsonify(success=False, error="Project not found"), 404
+            flash("Project not found", "error")
+            return redirect(url_for("main.projects_ui"))
+
+        project_id = project["id"]
         logging.info(f"Starting deletion of project: {project_name} (ID: {project_id})")
-        
+
         # Stop and remove all containers for this project
         try:
             import subprocess
             from pathlib import Path
-            
+
             # Get all containers with the project label
             result = subprocess.run(
-                ['docker', 'ps', '-a', '--filter', f'label=project={project_name}', '--format', '{{.Names}}'],
-                capture_output=True, text=True, timeout=30
+                [
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    f"label=project={project_name}",
+                    "--format",
+                    "{{.Names}}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
-            
+
             if result.returncode == 0 and result.stdout.strip():
-                container_names = result.stdout.strip().split('\n')
+                container_names = result.stdout.strip().split("\n")
                 logging.info(f"Found containers to remove: {container_names}")
-                
+
                 for container_name in container_names:
                     if container_name.strip():
                         # Stop container if running
-                        subprocess.run(['docker', 'stop', container_name], 
-                                     capture_output=True, timeout=30)
+                        subprocess.run(
+                            ["docker", "stop", container_name],
+                            capture_output=True,
+                            timeout=30,
+                        )
                         # Remove container
-                        subprocess.run(['docker', 'rm', container_name], 
-                                     capture_output=True, timeout=30)
+                        subprocess.run(
+                            ["docker", "rm", container_name],
+                            capture_output=True,
+                            timeout=30,
+                        )
                         logging.info(f"Removed container: {container_name}")
             else:
                 logging.info(f"No containers found for project: {project_name}")
-                
+
         except subprocess.TimeoutExpired:
-            logging.warning(f"Timeout while stopping containers for project: {project_name}")
+            logging.warning(
+                f"Timeout while stopping containers for project: {project_name}"
+            )
         except Exception as e:
-            logging.error(f"Error stopping containers for project {project_name}: {str(e)}")
-        
+            logging.error(
+                f"Error stopping containers for project {project_name}: {str(e)}"
+            )
+
         # Remove project files from projects_data directory
         try:
             current_dir = Path(__file__).parent.parent
             project_dir = current_dir / "projects_data" / project_name
-            
+
             if project_dir.exists():
                 import shutil
+
                 shutil.rmtree(project_dir)
                 logging.info(f"Removed project directory: {project_dir}")
             else:
                 logging.info(f"Project directory not found: {project_dir}")
-                
+
         except Exception as e:
-            logging.error(f"Error removing project directory for {project_name}: {str(e)}")
-        
+            logging.error(
+                f"Error removing project directory for {project_name}: {str(e)}"
+            )
+
         # Delete all deployment history for this project
         try:
             service.db.delete_deployment_history(project_id)
             logging.info(f"Deleted deployment history for project: {project_name}")
         except Exception as e:
-            logging.error(f"Error deleting deployment history for project {project_name}: {str(e)}")
-        
+            logging.error(
+                f"Error deleting deployment history for project {project_name}: {str(e)}"
+            )
+
         # Delete the project from database
         try:
             service.db.delete_project(project_id)
             logging.info(f"Deleted project from database: {project_name}")
         except Exception as e:
-            logging.error(f"Error deleting project {project_name} from database: {str(e)}")
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify(success=False, error='Failed to delete project from database'), 500
-            flash('Failed to delete project from database', 'error')
-            return redirect(url_for('main.projects_ui'))
-        
+            logging.error(
+                f"Error deleting project {project_name} from database: {str(e)}"
+            )
+            if (
+                request.is_json
+                or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            ):
+                return (
+                    jsonify(
+                        success=False, error="Failed to delete project from database"
+                    ),
+                    500,
+                )
+            flash("Failed to delete project from database", "error")
+            return redirect(url_for("main.projects_ui"))
+
         logging.info(f"Successfully deleted project: {project_name}")
-        
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify(success=True, message=f'Project {project_name} deleted successfully')
-        
-        flash(f'Project {project_name} deleted successfully', 'success')
-        return redirect(url_for('main.projects_ui'))
-        
+
+        if (
+            request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        ):
+            return jsonify(
+                success=True, message=f"Project {project_name} deleted successfully"
+            )
+
+        flash(f"Project {project_name} deleted successfully", "success")
+        return redirect(url_for("main.projects_ui"))
+
     except Exception as e:
         error_msg = f"Error deleting project {project_name}: {str(e)}"
         logging.error(error_msg, exc_info=True)
-        
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+
+        if (
+            request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        ):
             return jsonify(success=False, error=error_msg), 500
-        
-        flash('Error deleting project', 'error')
-        return redirect(url_for('main.project_detail', project_name=project_name))
+
+        flash("Error deleting project", "error")
+        return redirect(url_for("main.project_detail", project_name=project_name))
 
 
 @bp.route("/logs")
@@ -897,32 +1018,36 @@ def view_logs():
     """View recent application and deployment logs."""
     try:
         current_dir = Path(__file__).parent.parent
-        
+
         # Read recent app logs
         app_log_file = current_dir / "logs" / "app.log"
         deploy_log_file = current_dir / "logs" / "deploy.log"
-        
+
         app_logs = ""
         deploy_logs = ""
-        
+
         if app_log_file.exists():
-            with open(app_log_file, 'r') as f:
+            with open(app_log_file, "r") as f:
                 lines = f.readlines()
                 # Get last 50 lines
-                app_logs = ''.join(lines[-50:]) if lines else "No application logs yet."
+                app_logs = "".join(lines[-50:]) if lines else "No application logs yet."
         else:
             app_logs = "Application log file not found."
-            
+
         if deploy_log_file.exists():
-            with open(deploy_log_file, 'r') as f:
+            with open(deploy_log_file, "r") as f:
                 lines = f.readlines()
                 # Get last 100 lines
-                deploy_logs = ''.join(lines[-100:]) if lines else "No deployment logs yet."
+                deploy_logs = (
+                    "".join(lines[-100:]) if lines else "No deployment logs yet."
+                )
         else:
             deploy_logs = "Deployment log file not found."
-        
-        return render_template('logs_viewer.html', app_logs=app_logs, deploy_logs=deploy_logs)
-        
+
+        return render_template(
+            "logs_viewer.html", app_logs=app_logs, deploy_logs=deploy_logs
+        )
+
     except Exception as e:
         logging.error(f"Error viewing logs: {str(e)}")
         return jsonify(error="Failed to load logs"), 500

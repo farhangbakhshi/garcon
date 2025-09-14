@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,86 +23,102 @@
         }
     </script>
 </head>
+
 <body class="h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased"">
-    <nav class="bg-gray-800 dark:bg-gray-900 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <a href="{{ url_for('main.dashboard') }}" class="text-white text-xl font-bold">
-                        🧑‍🍳 Garcon
-                    </a>
-                </div>
-                
-                <!-- Mobile menu button -->
-                <div class="md:hidden">
-                    <button type="button" id="mobile-menu-button" class="text-gray-300 hover:text-white focus:outline-none focus:text-white transition duration-150 ease-in-out">
-                        <i class="bi bi-list text-2xl"></i>
-                    </button>
-                </div>
-                
-                <!-- Desktop menu -->
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="{{ url_for('main.dashboard') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-house mr-1"></i> Dashboard
-                        </a>
-                        <a href="{{ url_for('main.projects_ui') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-folder mr-1"></i> Projects
-                        </a>
-                        <a href="{{ url_for('main.add_project_form') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-plus-circle mr-1"></i> Add Project
-                        </a>
-                        <a href="{{ url_for('main.deployment_history_ui') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-clock-history mr-1"></i> Deployments
-                        </a>
-                        <a href="{{ url_for('main.view_logs_ui') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-journal-text mr-1"></i> Logs
-                        </a>
-                        <a href="http://localhost:8080" target="_blank" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
-                            <i class="bi bi-diagram-3 mr-1"></i> Traefik Dashboard
-                        </a>
-                    </div>
-                </div>
+    <nav class=" bg-gray-800 dark:bg-gray-900 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="{{ url_for('main.dashboard') }}" class="text-white text-xl font-bold">
+                    🧑‍🍳 Garcon
+                </a>
             </div>
-            
-            <!-- Mobile menu -->
-            <div id="mobile-menu" class="md:hidden hidden">
-                <div class="px-2 pt-2 pb-3 space-y-1 border-t border-gray-700">
-                    <a href="{{ url_for('main.dashboard') }}" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden">
+                <button type="button" id="mobile-menu-button"
+                    class="text-gray-300 hover:text-white focus:outline-none focus:text-white transition duration-150 ease-in-out">
+                    <i class="bi bi-list text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Desktop menu -->
+            <div class="hidden md:block">
+                <div class="ml-10 flex items-baseline space-x-4">
+                    <a href="{{ url_for('main.dashboard') }}"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-house mr-1"></i> Dashboard
                     </a>
-                    <a href="{{ url_for('main.projects_ui') }}" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <a href="{{ url_for('main.projects_ui') }}"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-folder mr-1"></i> Projects
                     </a>
-                    <a href="{{ url_for('main.add_project_form') }}" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <a href="{{ url_for('main.add_project_form') }}"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-plus-circle mr-1"></i> Add Project
                     </a>
-                    <a href="{{ url_for('main.deployment_history_ui') }}" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <a href="{{ url_for('main.deployment_history_ui') }}"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-clock-history mr-1"></i> Deployments
                     </a>
-                    <a href="{{ url_for('main.view_logs_ui') }}" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <a href="{{ url_for('main.view_logs_ui') }}"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-journal-text mr-1"></i> Logs
                     </a>
-                    <a href="http://localhost:8080" target="_blank" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <a href="http://localhost:8080" target="_blank"
+                        class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
                         <i class="bi bi-diagram-3 mr-1"></i> Traefik Dashboard
                     </a>
                 </div>
             </div>
         </div>
+
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 border-t border-gray-700">
+                <a href="{{ url_for('main.dashboard') }}"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-house mr-1"></i> Dashboard
+                </a>
+                <a href="{{ url_for('main.projects_ui') }}"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-folder mr-1"></i> Projects
+                </a>
+                <a href="{{ url_for('main.add_project_form') }}"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-plus-circle mr-1"></i> Add Project
+                </a>
+                <a href="{{ url_for('main.deployment_history_ui') }}"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-clock-history mr-1"></i> Deployments
+                </a>
+                <a href="{{ url_for('main.view_logs_ui') }}"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-journal-text mr-1"></i> Logs
+                </a>
+                <a href="http://localhost:8080" target="_blank"
+                    class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="bi bi-diagram-3 mr-1"></i> Traefik Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
     </nav>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="mb-4 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-50 dark:bg-red-900/50 border-red-400 text-red-700 dark:text-red-300{% elif category == 'success' %}bg-green-50 dark:bg-green-900/50 border-green-400 text-green-700 dark:text-green-300{% else %}bg-blue-50 dark:bg-blue-900/50 border-blue-400 text-blue-700 dark:text-blue-300{% endif %} relative">
-                        {{ message }}
-                        <button type="button" class="absolute top-2 right-2 text-current opacity-60 hover:opacity-100" onclick="this.parentElement.style.display='none'">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            class="mb-4 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-50 dark:bg-red-900/50 border-red-400 text-red-700 dark:text-red-300{% elif category == 'success' %}bg-green-50 dark:bg-green-900/50 border-green-400 text-green-700 dark:text-green-300{% else %}bg-blue-50 dark:bg-blue-900/50 border-blue-400 text-blue-700 dark:text-blue-300{% endif %} relative">
+            {{ message }}
+            <button type="button" class="absolute top-2 right-2 text-current opacity-60 hover:opacity-100"
+                onclick="this.parentElement.style.display='none'">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
@@ -128,11 +145,11 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
         // Mobile menu toggle
-        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+        document.getElementById('mobile-menu-button').addEventListener('click', function () {
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
         });
-        
+
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {
             const alerts = document.querySelectorAll('.mb-4.p-4.rounded-lg.border-l-4');
@@ -144,4 +161,5 @@
         }, 5000);
     </script>
 </body>
+
 </html>

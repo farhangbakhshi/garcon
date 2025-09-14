@@ -12,21 +12,27 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
     <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
         <input type="radio" name="logType" id="appLogs" value="app" class="sr-only" checked>
-        <label for="appLogs" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 rounded-md shadow-sm cursor-pointer transition duration-150 ease-in-out log-tab active">
+        <label for="appLogs"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 rounded-md shadow-sm cursor-pointer transition duration-150 ease-in-out log-tab active">
             <i class="bi bi-gear mr-2"></i> Application Logs
         </label>
-        
+
         <input type="radio" name="logType" id="deployLogs" value="deploy" class="sr-only">
-        <label for="deployLogs" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600 rounded-md cursor-pointer transition duration-150 ease-in-out log-tab ml-1">
+        <label for="deployLogs"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600 rounded-md cursor-pointer transition duration-150 ease-in-out log-tab ml-1">
             <i class="bi bi-rocket mr-2"></i> Deployment Logs
         </label>
     </div>
-    
+
     <div class="flex space-x-3">
-        <button class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium text-sm rounded-lg transition duration-150 ease-in-out" onclick="refreshLogs()">
+        <button
+            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium text-sm rounded-lg transition duration-150 ease-in-out"
+            onclick="refreshLogs()">
             <i class="bi bi-arrow-clockwise mr-1"></i> Refresh
         </button>
-        <button id="autoRefreshBtn" class="inline-flex items-center px-3 py-2 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out" onclick="toggleAutoRefresh()">
+        <button id="autoRefreshBtn"
+            class="inline-flex items-center px-3 py-2 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out"
+            onclick="toggleAutoRefresh()">
             <i class="bi bi-arrow-repeat mr-1"></i> Auto Refresh (<span id="autoRefreshStatus">Off</span>)
         </button>
     </div>
@@ -41,7 +47,8 @@
             </h5>
         </div>
         <div class="p-0">
-            <pre id="appLogContent" class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ app_logs }}</pre>
+            <pre id="appLogContent"
+                class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ app_logs }}</pre>
         </div>
     </div>
 </div>
@@ -55,7 +62,8 @@
             </h5>
         </div>
         <div class="p-0">
-            <pre id="deployLogContent" class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ deploy_logs }}</pre>
+            <pre id="deployLogContent"
+                class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ deploy_logs }}</pre>
         </div>
     </div>
 </div>
@@ -86,71 +94,71 @@
 </div>
 
 <script>
-let autoRefreshInterval = null;
-let autoRefreshEnabled = false;
+    let autoRefreshInterval = null;
+    let autoRefreshEnabled = false;
 
-// Tab switching
-document.querySelectorAll('input[name="logType"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // Update tab appearance
-        document.querySelectorAll('.log-tab').forEach(tab => {
-            tab.classList.remove('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
-            tab.classList.add('hover:bg-white', 'dark:hover:bg-gray-600');
+    // Tab switching
+    document.querySelectorAll('input[name="logType"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            // Update tab appearance
+            document.querySelectorAll('.log-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
+                tab.classList.add('hover:bg-white', 'dark:hover:bg-gray-600');
+            });
+
+            const activeLabel = document.querySelector(`label[for="${this.id}"]`);
+            activeLabel.classList.add('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
+            activeLabel.classList.remove('hover:bg-white', 'dark:hover:bg-gray-600');
+
+            // Show/hide sections
+            if (this.value === 'app') {
+                document.getElementById('appLogsSection').classList.remove('hidden');
+                document.getElementById('deployLogsSection').classList.add('hidden');
+            } else {
+                document.getElementById('appLogsSection').classList.add('hidden');
+                document.getElementById('deployLogsSection').classList.remove('hidden');
+            }
         });
-        
-        const activeLabel = document.querySelector(`label[for="${this.id}"]`);
-        activeLabel.classList.add('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
-        activeLabel.classList.remove('hover:bg-white', 'dark:hover:bg-gray-600');
-        
-        // Show/hide sections
-        if (this.value === 'app') {
-            document.getElementById('appLogsSection').classList.remove('hidden');
-            document.getElementById('deployLogsSection').classList.add('hidden');
-        } else {
-            document.getElementById('appLogsSection').classList.add('hidden');
-            document.getElementById('deployLogsSection').classList.remove('hidden');
-        }
     });
-});
 
-// Refresh logs
-function refreshLogs() {
-    location.reload();
-}
-
-// Auto refresh toggle
-function toggleAutoRefresh() {
-    const btn = document.getElementById('autoRefreshBtn');
-    
-    if (autoRefreshEnabled) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshEnabled = false;
-        document.getElementById('autoRefreshStatus').textContent = 'Off';
-        btn.classList.remove('bg-cyan-600', 'text-white');
-        btn.classList.add('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
-    } else {
-        autoRefreshInterval = setInterval(refreshLogs, 10000); // Refresh every 10 seconds
-        autoRefreshEnabled = true;
-        document.getElementById('autoRefreshStatus').textContent = 'On (10s)';
-        btn.classList.remove('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
-        btn.classList.add('bg-cyan-600', 'text-white');
+    // Refresh logs
+    function refreshLogs() {
+        location.reload();
     }
-}
 
-// Scroll to bottom of logs
-function scrollToBottom() {
-    const appLog = document.getElementById('appLogContent');
-    const deployLog = document.getElementById('deployLogContent');
-    
-    if (appLog && !appLog.closest('.hidden')) {
-        appLog.scrollTop = appLog.scrollHeight;
-    }
-    if (deployLog && !deployLog.closest('.hidden')) {
-        deployLog.scrollTop = deployLog.scrollHeight;
-    }
-}
+    // Auto refresh toggle
+    function toggleAutoRefresh() {
+        const btn = document.getElementById('autoRefreshBtn');
 
-// Scroll to bottom on page load
-window.addEventListener('load', scrollToBottom);
+        if (autoRefreshEnabled) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshEnabled = false;
+            document.getElementById('autoRefreshStatus').textContent = 'Off';
+            btn.classList.remove('bg-cyan-600', 'text-white');
+            btn.classList.add('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
+        } else {
+            autoRefreshInterval = setInterval(refreshLogs, 10000); // Refresh every 10 seconds
+            autoRefreshEnabled = true;
+            document.getElementById('autoRefreshStatus').textContent = 'On (10s)';
+            btn.classList.remove('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
+            btn.classList.add('bg-cyan-600', 'text-white');
+        }
+    }
+
+    // Scroll to bottom of logs
+    function scrollToBottom() {
+        const appLog = document.getElementById('appLogContent');
+        const deployLog = document.getElementById('deployLogContent');
+
+        if (appLog && !appLog.closest('.hidden')) {
+            appLog.scrollTop = appLog.scrollHeight;
+        }
+        if (deployLog && !deployLog.closest('.hidden')) {
+            deployLog.scrollTop = deployLog.scrollHeight;
+        }
+    }
+
+    // Scroll to bottom on page load
+    window.addEventListener('load', scrollToBottom);
 </script>
 {% endblock %}

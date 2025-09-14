@@ -74,7 +74,7 @@ show_status() {
         tail -5 "$DEPLOY_LOG" | while read line; do
             if [[ $line == *"ERROR"* ]]; then
                 echo -e "${RED}$line${NC}"
-            elif [[ $line == *"INFO"* ]]; then
+                elif [[ $line == *"INFO"* ]]; then
                 echo -e "${GREEN}$line${NC}"
             else
                 echo "$line"
@@ -97,7 +97,7 @@ view_logs() {
             else
                 echo -e "${YELLOW}Application log file not found${NC}"
             fi
-            ;;
+        ;;
         "deploy")
             echo -e "${BLUE}=== Deployment Logs ===${NC}"
             if [ -f "$DEPLOY_LOG" ]; then
@@ -105,19 +105,19 @@ view_logs() {
             else
                 echo -e "${YELLOW}Deployment log file not found${NC}"
             fi
-            ;;
+        ;;
         "tail")
             echo -e "${BLUE}=== Tailing All Logs (Ctrl+C to exit) ===${NC}"
             if [ -f "$APP_LOG" ] && [ -f "$DEPLOY_LOG" ]; then
                 tail -f "$APP_LOG" "$DEPLOY_LOG"
-            elif [ -f "$APP_LOG" ]; then
+                elif [ -f "$APP_LOG" ]; then
                 tail -f "$APP_LOG"
-            elif [ -f "$DEPLOY_LOG" ]; then
+                elif [ -f "$DEPLOY_LOG" ]; then
                 tail -f "$DEPLOY_LOG"
             else
                 echo -e "${YELLOW}No log files found to tail${NC}"
             fi
-            ;;
+        ;;
         *)
             echo -e "${BLUE}=== Recent Deployment Logs ===${NC}"
             if [ -f "$DEPLOY_LOG" ]; then
@@ -131,7 +131,7 @@ view_logs() {
             else
                 echo -e "${YELLOW}No application logs found${NC}"
             fi
-            ;;
+        ;;
     esac
 }
 
@@ -210,9 +210,9 @@ monitor_deployment() {
         tail -f "$DEPLOY_LOG" | while read line; do
             if [[ $line == *"ERROR"* ]]; then
                 echo -e "${RED}$line${NC}"
-            elif [[ $line == *"INFO"* ]]; then
+                elif [[ $line == *"INFO"* ]]; then
                 echo -e "${GREEN}$line${NC}"
-            elif [[ $line == *"WARNING"* ]]; then
+                elif [[ $line == *"WARNING"* ]]; then
                 echo -e "${YELLOW}$line${NC}"
             else
                 echo "$line"
@@ -227,27 +227,27 @@ monitor_deployment() {
 case "$1" in
     "status")
         show_status
-        ;;
+    ;;
     "logs")
         view_logs "$2"
-        ;;
+    ;;
     "deploy")
         trigger_deploy "$2" "blue-green"
-        ;;
+    ;;
     "simple-deploy")
         trigger_deploy "$2" "simple"
-        ;;
+    ;;
     "containers")
         list_containers
-        ;;
+    ;;
     "cleanup")
         cleanup_containers
-        ;;
+    ;;
     "monitor")
         monitor_deployment
-        ;;
+    ;;
     *)
         usage
         exit 1
-        ;;
+    ;;
 esac
