@@ -154,7 +154,7 @@
                         <div class="p-6">
                             <div class="flex justify-between items-start mb-4">
                                 <h6 class="text-lg font-semibold text-gray-900 dark:text-white">{{ project.repo_name }}</h6>
-                                {% if project.actual_status == 'running' %}
+                                {% if project.container_id %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                         <i class="bi bi-circle-fill mr-1"></i> Running
                                     </span>

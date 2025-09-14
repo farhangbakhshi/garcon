@@ -1,15 +1,11 @@
 // Garcon Frontend JavaScript
 
-// Global variables
-let deploymentSocket = null;
-
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     initializeTooltips();
     initializeModals();
     initializeDeploymentButtons();
     initializeDeleteConfirmation();
-    initializeWebSocket();
 });
 
 // Initialize tooltips (no longer using Bootstrap tooltips)
@@ -172,111 +168,6 @@ function createToastContainer() {
     container.className = 'fixed top-4 right-4 z-50 space-y-2';
     document.body.appendChild(container);
     return container;
-}
-
-// Initialize WebSocket connection for real-time updates
-function initializeWebSocket() {
-    // Only initialize on pages that need real-time updates
-    const needsWebSocket = document.body.dataset.needsWebsocket || 
-                          document.querySelector('.deploy-btn') !== null;
-    
-    if (!needsWebSocket) {
-        return;
-    }
-    
-    try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        deploymentSocket = new WebSocket(wsUrl);
-        
-        deploymentSocket.onopen = function(event) {
-            console.log('WebSocket connected');
-        };
-        
-        deploymentSocket.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            handleWebSocketMessage(data);
-        };
-        
-        deploymentSocket.onclose = function(event) {
-            console.log('WebSocket disconnected');
-            // Attempt to reconnect after 5 seconds
-            setTimeout(initializeWebSocket, 5000);
-        };
-        
-        deploymentSocket.onerror = function(error) {
-            console.error('WebSocket error:', error);
-        };
-    } catch (error) {
-        console.error('WebSocket initialization failed:', error);
-    }
-}
-
-// Handle WebSocket messages
-function handleWebSocketMessage(data) {
-    switch (data.type) {
-        case 'deployment_status':
-            updateDeploymentStatus(data.project_id, data.status);
-            break;
-        case 'deployment_complete':
-            showNotification(`Deployment completed for ${data.project_name}`, 'success');
-            updateProjectStatus(data.project_id, 'running');
-            break;
-        case 'deployment_failed':
-            showNotification(`Deployment failed for ${data.project_name}: ${data.error}`, 'danger');
-            updateProjectStatus(data.project_id, 'stopped');
-            break;
-        default:
-            console.log('Unknown WebSocket message type:', data.type);
-    }
-}
-
-// Update deployment status in UI
-function updateDeploymentStatus(projectId, status) {
-    const statusElements = document.querySelectorAll(`[data-project-id="${projectId}"] .project-status`);
-    statusElements.forEach(statusElement => {
-        // Remove old status classes
-        statusElement.className = statusElement.className.replace(/bg-\w+-\d+/g, '');
-        statusElement.className = statusElement.className.replace(/text-\w+-\d+/g, '');
-        
-        // Add new status classes
-        const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
-        let statusClasses = '';
-        
-        switch(status) {
-            case 'running':
-                statusClasses = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-                break;
-            case 'deploying':
-                statusClasses = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 animate-pulse';
-                break;
-            case 'stopped':
-                statusClasses = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-                break;
-            default:
-                statusClasses = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-        }
-        
-        statusElement.className = `${baseClasses} ${statusClasses}`;
-        statusElement.innerHTML = `<i class="bi bi-circle${status === 'running' ? '-fill' : ''} mr-1"></i> ${status.charAt(0).toUpperCase() + status.slice(1)}`;
-    });
-}
-
-// Update project status
-function updateProjectStatus(projectId, status) {
-    updateDeploymentStatus(projectId, status);
-    
-    // Update any deployment buttons
-    const deployButtons = document.querySelectorAll(`[data-project-id="${projectId}"].deploy-btn`);
-    deployButtons.forEach(button => {
-        button.disabled = status === 'deploying';
-        if (status === 'deploying') {
-            button.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            button.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    });
 }
 
 // Utility functions
@@ -448,9 +339,6 @@ function deleteProject(projectName) {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
-    if (deploymentSocket) {
-        deploymentSocket.close();
-    }
     if (logAutoRefresh) {
         clearInterval(logAutoRefresh);
     }
