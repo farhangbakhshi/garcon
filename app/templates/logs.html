@@ -3,97 +3,84 @@
 {% block title %}Logs - Garcon{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="display-6 mb-4">
-            <i class="bi bi-journal-text"></i> System Logs
-        </h1>
-    </div>
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <i class="bi bi-journal-text mr-2"></i> System Logs
+    </h1>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-6">
-        <div class="btn-group" role="group">
-            <input type="radio" class="btn-check" name="logType" id="appLogs" value="app" checked>
-            <label class="btn btn-outline-primary" for="appLogs">
-                <i class="bi bi-gear"></i> Application Logs
-            </label>
-            
-            <input type="radio" class="btn-check" name="logType" id="deployLogs" value="deploy">
-            <label class="btn btn-outline-success" for="deployLogs">
-                <i class="bi bi-rocket"></i> Deployment Logs
-            </label>
-        </div>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+    <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <input type="radio" name="logType" id="appLogs" value="app" class="sr-only" checked>
+        <label for="appLogs" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 rounded-md shadow-sm cursor-pointer transition duration-150 ease-in-out log-tab active">
+            <i class="bi bi-gear mr-2"></i> Application Logs
+        </label>
+        
+        <input type="radio" name="logType" id="deployLogs" value="deploy" class="sr-only">
+        <label for="deployLogs" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600 rounded-md cursor-pointer transition duration-150 ease-in-out log-tab ml-1">
+            <i class="bi bi-rocket mr-2"></i> Deployment Logs
+        </label>
     </div>
-    <div class="col-md-6 text-md-end">
-        <button class="btn btn-outline-secondary" onclick="refreshLogs()">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+    
+    <div class="flex space-x-3">
+        <button class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium text-sm rounded-lg transition duration-150 ease-in-out" onclick="refreshLogs()">
+            <i class="bi bi-arrow-clockwise mr-1"></i> Refresh
         </button>
-        <button class="btn btn-outline-info" onclick="toggleAutoRefresh()">
-            <i class="bi bi-arrow-repeat"></i> Auto Refresh (<span id="autoRefreshStatus">Off</span>)
+        <button id="autoRefreshBtn" class="inline-flex items-center px-3 py-2 border border-cyan-600 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-400 dark:text-cyan-400 dark:hover:bg-cyan-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out" onclick="toggleAutoRefresh()">
+            <i class="bi bi-arrow-repeat mr-1"></i> Auto Refresh (<span id="autoRefreshStatus">Off</span>)
         </button>
     </div>
 </div>
 
 <!-- Application Logs -->
-<div class="row mb-4" id="appLogsSection">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-gear"></i> Application Logs (Last 50 lines)
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                <pre id="appLogContent" class="log-content mb-0">{{ app_logs }}</pre>
-            </div>
+<div id="appLogsSection" class="mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 bg-blue-600 text-white">
+            <h5 class="text-lg font-semibold">
+                <i class="bi bi-gear mr-2"></i> Application Logs (Last 50 lines)
+            </h5>
+        </div>
+        <div class="p-0">
+            <pre id="appLogContent" class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ app_logs }}</pre>
         </div>
     </div>
 </div>
 
 <!-- Deployment Logs -->
-<div class="row mb-4" id="deployLogsSection" style="display: none;">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-rocket"></i> Deployment Logs (Last 100 lines)
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                <pre id="deployLogContent" class="log-content mb-0">{{ deploy_logs }}</pre>
-            </div>
+<div id="deployLogsSection" class="mb-8 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 bg-green-600 text-white">
+            <h5 class="text-lg font-semibold">
+                <i class="bi bi-rocket mr-2"></i> Deployment Logs (Last 100 lines)
+            </h5>
+        </div>
+        <div class="p-0">
+            <pre id="deployLogContent" class="bg-gray-900 dark:bg-gray-950 text-green-400 dark:text-green-300 font-mono text-sm leading-relaxed p-6 overflow-auto max-h-96 whitespace-pre-wrap">{{ deploy_logs }}</pre>
         </div>
     </div>
 </div>
 
 <!-- Log Statistics -->
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-file-text display-4 text-primary"></i>
-                <h5 class="mt-2">App Log Size</h5>
-                <p class="text-muted">{{ log_stats.app_log_size }}</p>
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <div class="p-6 text-center">
+            <i class="bi bi-file-text text-4xl text-blue-600 dark:text-blue-400"></i>
+            <h5 class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">App Log Size</h5>
+            <p class="text-gray-500 dark:text-gray-400">{{ log_stats.app_log_size }}</p>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-file-text display-4 text-success"></i>
-                <h5 class="mt-2">Deploy Log Size</h5>
-                <p class="text-muted">{{ log_stats.deploy_log_size }}</p>
-            </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <div class="p-6 text-center">
+            <i class="bi bi-file-text text-4xl text-green-600 dark:text-green-400"></i>
+            <h5 class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">Deploy Log Size</h5>
+            <p class="text-gray-500 dark:text-gray-400">{{ log_stats.deploy_log_size }}</p>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-clock display-4 text-info"></i>
-                <h5 class="mt-2">Last Updated</h5>
-                <p class="text-muted">{{ log_stats.last_modified }}</p>
-            </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <div class="p-6 text-center">
+            <i class="bi bi-clock text-4xl text-cyan-600 dark:text-cyan-400"></i>
+            <h5 class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">Last Updated</h5>
+            <p class="text-gray-500 dark:text-gray-400">{{ log_stats.last_modified }}</p>
         </div>
     </div>
 </div>
@@ -105,12 +92,23 @@ let autoRefreshEnabled = false;
 // Tab switching
 document.querySelectorAll('input[name="logType"]').forEach(radio => {
     radio.addEventListener('change', function() {
+        // Update tab appearance
+        document.querySelectorAll('.log-tab').forEach(tab => {
+            tab.classList.remove('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
+            tab.classList.add('hover:bg-white', 'dark:hover:bg-gray-600');
+        });
+        
+        const activeLabel = document.querySelector(`label[for="${this.id}"]`);
+        activeLabel.classList.add('active', 'bg-white', 'dark:bg-gray-600', 'shadow-sm');
+        activeLabel.classList.remove('hover:bg-white', 'dark:hover:bg-gray-600');
+        
+        // Show/hide sections
         if (this.value === 'app') {
-            document.getElementById('appLogsSection').style.display = 'block';
-            document.getElementById('deployLogsSection').style.display = 'none';
+            document.getElementById('appLogsSection').classList.remove('hidden');
+            document.getElementById('deployLogsSection').classList.add('hidden');
         } else {
-            document.getElementById('appLogsSection').style.display = 'none';
-            document.getElementById('deployLogsSection').style.display = 'block';
+            document.getElementById('appLogsSection').classList.add('hidden');
+            document.getElementById('deployLogsSection').classList.remove('hidden');
         }
     });
 });
@@ -122,14 +120,20 @@ function refreshLogs() {
 
 // Auto refresh toggle
 function toggleAutoRefresh() {
+    const btn = document.getElementById('autoRefreshBtn');
+    
     if (autoRefreshEnabled) {
         clearInterval(autoRefreshInterval);
         autoRefreshEnabled = false;
         document.getElementById('autoRefreshStatus').textContent = 'Off';
+        btn.classList.remove('bg-cyan-600', 'text-white');
+        btn.classList.add('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
     } else {
         autoRefreshInterval = setInterval(refreshLogs, 10000); // Refresh every 10 seconds
         autoRefreshEnabled = true;
         document.getElementById('autoRefreshStatus').textContent = 'On (10s)';
+        btn.classList.remove('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
+        btn.classList.add('bg-cyan-600', 'text-white');
     }
 }
 
@@ -138,10 +142,10 @@ function scrollToBottom() {
     const appLog = document.getElementById('appLogContent');
     const deployLog = document.getElementById('deployLogContent');
     
-    if (appLog.offsetParent !== null) {
+    if (appLog && !appLog.closest('.hidden')) {
         appLog.scrollTop = appLog.scrollHeight;
     }
-    if (deployLog.offsetParent !== null) {
+    if (deployLog && !deployLog.closest('.hidden')) {
         deployLog.scrollTop = deployLog.scrollHeight;
     }
 }

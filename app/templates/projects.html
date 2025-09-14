@@ -3,99 +3,99 @@
 {% block title %}Projects - Garcon{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="display-6">
-                <i class="bi bi-folder2-open"></i> Projects
-            </h1>
-            <a href="{{ url_for('main.add_project_form') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Add Project
-            </a>
-        </div>
+<div class="mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-0">
+            <i class="bi bi-folder2-open mr-2"></i> Projects
+        </h1>
+        <a href="{{ url_for('main.add_project_form') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
+            <i class="bi bi-plus-circle mr-2"></i> Add Project
+        </a>
     </div>
 </div>
 
 {% if projects %}
-    <div class="row">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for project in projects %}
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h5 class="card-title">{{ project.repo_name }}</h5>
-                        {% if project.container_id %}
-                            <span class="badge bg-success">
-                                <i class="bi bi-circle-fill"></i> Running
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h5 class="text-xl font-semibold text-gray-900 dark:text-white">{{ project.repo_name }}</h5>
+                    {% if project.container_id %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <i class="bi bi-circle-fill mr-1"></i> Running
+                        </span>
+                    {% else %}
+                        {% if project.actual_status == 'running' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <i class="bi bi-circle-fill mr-1"></i> Running
                             </span>
                         {% else %}
-                            <span class="badge bg-secondary">
-                                {% if project.actual_status == 'running' %}
-                                <i class="bi bi-circle-fill text-success"></i> Running
-                            {% else %}
-                                <i class="bi bi-circle"></i> Stopped
-                            {% endif %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                <i class="bi bi-circle mr-1"></i> Stopped
                             </span>
                         {% endif %}
-                    </div>
-                    
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i class="bi bi-github"></i> 
-                            <a href="{{ project.repo_url }}" target="_blank" class="text-decoration-none">
-                                Repository
-                            </a>
-                        </small>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p class="flex items-center">
+                        <i class="bi bi-github mr-2"></i>
+                        <a href="{{ project.repo_url }}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
+                            Repository
+                        </a>
                     </p>
                     
                     {% if project.container_id %}
-                        <p class="card-text">
-                            <small class="text-muted">
-                                <i class="bi bi-box"></i> Container: <code>{{ project.container_id[:12] }}...</code>
-                            </small>
+                        <p class="flex items-center">
+                            <i class="bi bi-box mr-2"></i>
+                            Container: <code class="ml-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-xs">{{ project.container_id[:12] }}...</code>
                         </p>
                     {% endif %}
                     
                     {% if project.deployment_uuid %}
-                        <p class="card-text">
-                            <small class="text-muted">
-                                <i class="bi bi-tag"></i> UUID: <code>{{ project.deployment_uuid[:8] }}...</code>
-                            </small>
+                        <p class="flex items-center">
+                            <i class="bi bi-tag mr-2"></i>
+                            UUID: <code class="ml-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-xs">{{ project.deployment_uuid[:8] }}...</code>
                         </p>
                     {% endif %}
                     
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i class="bi bi-clock"></i> Updated: {{ project.updated_at }}
-                        </small>
+                    <p class="flex items-center">
+                        <i class="bi bi-clock mr-2"></i>
+                        Updated: {{ project.updated_at }}
                     </p>
                 </div>
-                <div class="card-footer bg-transparent">
-                    <div class="btn-group w-100" role="group">
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700 px-6 py-3">
+                <div class="flex flex-col space-y-2">
+                    <div class="flex space-x-2">
                         <a href="{{ url_for('main.project_detail', project_name=project.repo_name) }}" 
-                           class="btn btn-outline-primary">
-                            <i class="bi bi-eye"></i> Details
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out">
+                            <i class="bi bi-eye mr-1"></i> Details
                         </a>
-                        <button class="btn btn-outline-success deploy-btn" 
+                        <button class="flex-1 deploy-btn inline-flex items-center justify-center px-3 py-2 border border-green-600 text-green-600 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/50 font-medium text-sm rounded-lg transition duration-150 ease-in-out" 
                                 data-project="{{ project.repo_name }}"
                                 data-project-id="{{ project.id }}"
                                 data-repo-url="{{ project.repo_url }}">
-                            <i class="bi bi-rocket"></i> Deploy
+                            <i class="bi bi-rocket mr-1"></i> Deploy
                         </button>
-                        <a href="{{ project.repo_url }}" target="_blank" class="btn btn-outline-secondary">
-                            <i class="bi bi-github"></i> GitHub
+                        <a href="{{ project.repo_url }}" target="_blank" class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium text-sm rounded-lg transition duration-150 ease-in-out">
+                            <i class="bi bi-github mr-1"></i> GitHub
                         </a>
                     </div>
                     
                     <!-- Project URLs -->
                     {% if project.urls %}
-                        <div class="mt-2">
-                            <small class="text-muted">Quick Access:</small>
-                            {% for url in project.urls[:3] %}
-                                <a href="{{ url }}" target="_blank" class="btn btn-sm btn-outline-info me-1 mt-1">
-                                    <i class="bi bi-link-45deg"></i> {{ url.split('//')[1] }}
-                                </a>
-                            {% endfor %}
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick Access:</p>
+                            <div class="flex flex-wrap gap-1">
+                                {% for url in project.urls[:3] %}
+                                    <a href="{{ url }}" target="_blank" class="inline-flex items-center px-2 py-1 text-xs bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded hover:bg-cyan-200 dark:hover:bg-cyan-800 transition duration-150 ease-in-out">
+                                        <i class="bi bi-link-45deg mr-1"></i> {{ url.split('//')[1] }}
+                                    </a>
+                                {% endfor %}
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -104,54 +104,81 @@
         {% endfor %}
     </div>
 {% else %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-folder-plus display-1 text-muted"></i>
-                    <h4 class="mt-3">No Projects Yet</h4>
-                    <p class="text-muted mb-4">
-                        Get started by adding your first project. Garcon will automatically handle the deployment 
-                        and set up Traefik routing for your containerized applications.
-                    </p>
-                    <a href="{{ url_for('main.add_project_form') }}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-plus-circle"></i> Add Your First Project
-                    </a>
-                </div>
-            </div>
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <div class="text-center py-12">
+            <i class="bi bi-folder-plus text-6xl text-gray-400 dark:text-gray-500"></i>
+            <h4 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No Projects Yet</h4>
+            <p class="mt-2 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                Get started by adding your first project. Garcon will automatically handle the deployment 
+                and set up Traefik routing for your containerized applications.
+            </p>
+            <a href="{{ url_for('main.add_project_form') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-150 ease-in-out mt-6">
+                <i class="bi bi-plus-circle mr-2"></i> Add Your First Project
+            </a>
         </div>
     </div>
 {% endif %}
 
-<!-- Deployment Modal (same as dashboard) -->
-<div class="modal fade" id="deployModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Deploy Project</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Deployment Modal -->
+<div id="deployModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Deploy Project</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onclick="closeModal()">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to trigger a deployment for <strong id="deploy-project-name"></strong>?</p>
-                <div class="mb-3">
-                    <label for="deploymentType" class="form-label">Deployment Type</label>
-                    <select class="form-select" id="deploymentType">
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to trigger a deployment for <strong id="deploy-project-name" class="text-gray-900 dark:text-white"></strong>?
+                </p>
+                <div class="mt-4">
+                    <label for="deploymentType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deployment Type</label>
+                    <select id="deploymentType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                         <option value="blue-green">Blue-Green (Zero Downtime)</option>
                         <option value="simple">Simple (Quick)</option>
                     </select>
                 </div>
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    Blue-Green deployments ensure zero downtime but take longer to complete.
+                <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-lg">
+                    <div class="flex">
+                        <i class="bi bi-info-circle text-blue-500 dark:text-blue-400 mr-2 mt-0.5"></i>
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            Blue-Green deployments ensure zero downtime but take longer to complete.
+                        </p>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmDeploy">
-                    <i class="bi bi-rocket"></i> Deploy
-                </button>
+            <div class="items-center px-4 py-3">
+                <div class="flex space-x-3">
+                    <button id="confirmDeploy" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
+                        <i class="bi bi-rocket mr-2"></i> Deploy
+                    </button>
+                    <button onclick="closeModal()" class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition duration-150 ease-in-out">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function closeModal() {
+    document.getElementById('deployModal').classList.add('hidden');
+}
+
+// Update modal handling for Tailwind
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('deploy-btn') || event.target.closest('.deploy-btn')) {
+        const button = event.target.closest('.deploy-btn');
+        const projectName = button.dataset.project;
+        document.getElementById('deploy-project-name').textContent = projectName;
+        document.getElementById('deployModal').classList.remove('hidden');
+        
+        // Store project data for deployment
+        document.getElementById('deployModal').dataset.projectId = button.dataset.projectId;
+    }
+});
+</script>
 {% endblock %}

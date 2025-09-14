@@ -5,7 +5,6 @@ let deploymentSocket = null;
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
-    setTheme();
     initializeTooltips();
     initializeModals();
     initializeDeploymentButtons();
@@ -13,65 +12,47 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeWebSocket();
 });
 
-// Set Bootstrap theme based on system preference
-function setTheme() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
-}
-
-// Listen for theme changes
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTheme);
-
-// Initialize Bootstrap tooltips
+// Initialize tooltips (no longer using Bootstrap tooltips)
 function initializeTooltips() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    // No longer using Bootstrap tooltips, using native title attributes
+    // This function is kept for backward compatibility
 }
 
-// Initialize Bootstrap modals
+// Initialize modals and alerts
 function initializeModals() {
     // Auto-hide alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert-dismissible');
+    const alerts = document.querySelectorAll('.mb-4.p-4.rounded-lg.border-l-4');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            const closeBtn = alert.querySelector('button');
+            if (closeBtn) {
+                alert.style.transition = 'opacity 0.5s ease-out';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            }
         }, 5000);
     });
 }
 
 // Initialize deployment buttons
 function initializeDeploymentButtons() {
-    const deployButtons = document.querySelectorAll('.deploy-btn');
-    deployButtons.forEach(button => {
-        button.addEventListener('click', handleDeployment);
-    });
-    
-    // Add event listener for confirm deploy button using event delegation
+    // Event delegation for deploy buttons
     document.addEventListener('click', function(event) {
+        const deployBtn = event.target.closest('.deploy-btn');
+        if (deployBtn) {
+            handleDeployment(deployBtn);
+        }
+        
+        // Handle confirm deploy button
         if (event.target.id === 'confirmDeploy' || event.target.closest('#confirmDeploy')) {
             event.preventDefault();
-            const modal = document.getElementById('deployModal');
-            const projectId = parseInt(modal.dataset.projectId);
-            const deploymentType = document.getElementById('deploymentType').value;
-            
-            // Hide modal
-            const bsModal = bootstrap.Modal.getInstance(modal);
-            if (bsModal) {
-                bsModal.hide();
-            }
-            
-            // Start deployment
-            startDeployment(projectId, deploymentType);
+            confirmDeployment();
         }
     });
 }
 
 // Handle deployment button clicks
-function handleDeployment(event) {
-    const button = event.target.closest('.deploy-btn');
+function handleDeployment(button) {
     const projectId = button.dataset.projectId;
     const projectName = button.dataset.project;
     const deploymentType = button.dataset.deploymentType || 'blue-green';
@@ -83,17 +64,35 @@ function handleDeployment(event) {
 // Show deployment confirmation modal
 function showDeploymentModal(projectId, projectName, deploymentType) {
     const modal = document.getElementById('deployModal');
+    if (!modal) return;
     
     // Update modal content
-    document.getElementById('deploy-project-name').textContent = projectName;
-    document.getElementById('deploymentType').value = deploymentType;
+    const projectNameElement = document.getElementById('deploy-project-name');
+    const deploymentTypeSelect = document.getElementById('deploymentType');
+    
+    if (projectNameElement) projectNameElement.textContent = projectName;
+    if (deploymentTypeSelect) deploymentTypeSelect.value = deploymentType;
     
     // Store project ID for later use
     modal.dataset.projectId = projectId;
     
     // Show modal
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
+    modal.classList.remove('hidden');
+}
+
+// Confirm deployment
+function confirmDeployment() {
+    const modal = document.getElementById('deployModal');
+    if (!modal) return;
+    
+    const projectId = parseInt(modal.dataset.projectId);
+    const deploymentType = document.getElementById('deploymentType')?.value || 'blue-green';
+    
+    // Hide modal
+    modal.classList.add('hidden');
+    
+    // Start deployment
+    startDeployment(projectId, deploymentType);
 }
 
 // Start deployment process
@@ -129,41 +128,48 @@ function startDeployment(projectId, deploymentType) {
     });
 }
 
-// Show notification toast
+// Show notification toast using Tailwind classes
 function showNotification(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer') || createToastContainer();
     
     const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
+    const bgColor = type === 'success' ? 'bg-green-500' : 
+                   type === 'danger' ? 'bg-red-500' : 
+                   type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+    
+    toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg mb-3 transition-all duration-300 transform translate-x-full`;
     
     toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'x-circle' : 'info-circle'} mr-3"></i>
+                <span>${message}</span>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            <button type="button" class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
     `;
     
     toastContainer.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
     
-    // Remove toast element after it's hidden
-    toast.addEventListener('hidden.bs.toast', () => {
-        toast.remove();
-    });
+    // Animate in
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
 }
 
 // Create toast container if it doesn't exist
 function createToastContainer() {
     const container = document.createElement('div');
     container.id = 'toastContainer';
-    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    container.style.zIndex = '11';
+    container.className = 'fixed top-4 right-4 z-50 space-y-2';
     document.body.appendChild(container);
     return container;
 }
@@ -171,7 +177,10 @@ function createToastContainer() {
 // Initialize WebSocket connection for real-time updates
 function initializeWebSocket() {
     // Only initialize on pages that need real-time updates
-    if (!document.body.classList.contains('needs-websocket')) {
+    const needsWebSocket = document.body.dataset.needsWebsocket || 
+                          document.querySelector('.deploy-btn') !== null;
+    
+    if (!needsWebSocket) {
         return;
     }
     
@@ -225,18 +234,33 @@ function handleWebSocketMessage(data) {
 
 // Update deployment status in UI
 function updateDeploymentStatus(projectId, status) {
-    const statusElement = document.querySelector(`[data-project-id="${projectId}"] .project-status`);
-    if (statusElement) {
-        statusElement.className = `badge status-${status}`;
-        statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    const statusElements = document.querySelectorAll(`[data-project-id="${projectId}"] .project-status`);
+    statusElements.forEach(statusElement => {
+        // Remove old status classes
+        statusElement.className = statusElement.className.replace(/bg-\w+-\d+/g, '');
+        statusElement.className = statusElement.className.replace(/text-\w+-\d+/g, '');
         
-        // Add pulse animation for deploying status
-        if (status === 'deploying') {
-            statusElement.classList.add('deploying');
-        } else {
-            statusElement.classList.remove('deploying');
+        // Add new status classes
+        const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+        let statusClasses = '';
+        
+        switch(status) {
+            case 'running':
+                statusClasses = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                break;
+            case 'deploying':
+                statusClasses = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 animate-pulse';
+                break;
+            case 'stopped':
+                statusClasses = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+                break;
+            default:
+                statusClasses = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
         }
-    }
+        
+        statusElement.className = `${baseClasses} ${statusClasses}`;
+        statusElement.innerHTML = `<i class="bi bi-circle${status === 'running' ? '-fill' : ''} mr-1"></i> ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+    });
 }
 
 // Update project status
@@ -244,10 +268,15 @@ function updateProjectStatus(projectId, status) {
     updateDeploymentStatus(projectId, status);
     
     // Update any deployment buttons
-    const deployButton = document.querySelector(`[data-project-id="${projectId}"].deploy-btn`);
-    if (deployButton) {
-        deployButton.disabled = status === 'deploying';
-    }
+    const deployButtons = document.querySelectorAll(`[data-project-id="${projectId}"].deploy-btn`);
+    deployButtons.forEach(button => {
+        button.disabled = status === 'deploying';
+        if (status === 'deploying') {
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            button.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    });
 }
 
 // Utility functions
@@ -278,9 +307,9 @@ function formatBytes(bytes) {
 
 // Form validation
 function validateProjectForm(form) {
-    const name = form.querySelector('[name="name"]').value.trim();
-    const gitUrl = form.querySelector('[name="git_url"]').value.trim();
-    const domain = form.querySelector('[name="domain"]').value.trim();
+    const name = form.querySelector('[name="name"]')?.value.trim();
+    const gitUrl = form.querySelector('[name="git_url"]')?.value.trim();
+    const domain = form.querySelector('[name="domain"]')?.value.trim();
     
     if (!name || !gitUrl || !domain) {
         showNotification('Please fill in all required fields', 'warning');
@@ -317,9 +346,9 @@ document.addEventListener('submit', function(event) {
 
 // Add confirmation for destructive actions
 document.addEventListener('click', function(event) {
-    const element = event.target;
+    const element = event.target.closest('[data-confirm]');
     
-    if (element.classList.contains('btn-danger') || element.dataset.confirm) {
+    if (element) {
         const message = element.dataset.confirm || 'Are you sure you want to perform this action?';
         if (!confirm(message)) {
             event.preventDefault();
@@ -338,15 +367,15 @@ function toggleLogAutoRefresh() {
         clearInterval(logAutoRefresh);
         logAutoRefresh = null;
         status.textContent = 'Off';
-        button.classList.remove('btn-success');
-        button.classList.add('btn-outline-info');
+        button.classList.remove('bg-cyan-600', 'text-white');
+        button.classList.add('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
     } else {
         logAutoRefresh = setInterval(() => {
             location.reload();
         }, 10000);
         status.textContent = 'On (10s)';
-        button.classList.remove('btn-outline-info');
-        button.classList.add('btn-success');
+        button.classList.remove('border-cyan-600', 'text-cyan-600', 'hover:bg-cyan-50', 'dark:border-cyan-400', 'dark:text-cyan-400', 'dark:hover:bg-cyan-900/50');
+        button.classList.add('bg-cyan-600', 'text-white');
     }
 }
 
@@ -361,10 +390,20 @@ function initializeDeleteConfirmation() {
         deleteConfirmationInput.addEventListener('input', function() {
             const enteredText = this.value.trim();
             confirmDeleteBtn.disabled = enteredText !== projectName;
+            
+            if (enteredText === projectName) {
+                confirmDeleteBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                confirmDeleteBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                confirmDeleteBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                confirmDeleteBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
         });
         
         confirmDeleteBtn.addEventListener('click', function() {
-            deleteProject(projectName);
+            if (!this.disabled) {
+                deleteProject(projectName);
+            }
         });
     }
 }
@@ -374,7 +413,7 @@ function deleteProject(projectName) {
     // Show loading state
     const confirmBtn = document.getElementById('confirmDelete');
     const originalText = confirmBtn.innerHTML;
-    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+    confirmBtn.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i>Deleting...';
     confirmBtn.disabled = true;
     
     // Make delete request
@@ -416,3 +455,24 @@ window.addEventListener('beforeunload', function() {
         clearInterval(logAutoRefresh);
     }
 });
+
+// Global modal close functions for compatibility
+window.closeModal = function() {
+    const modals = document.querySelectorAll('[id$="Modal"]');
+    modals.forEach(modal => modal.classList.add('hidden'));
+};
+
+window.closeErrorModal = function() {
+    const modal = document.getElementById('errorModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.closeDeleteModal = function() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.closeDeployModal = function() {
+    const modal = document.getElementById('deployModal');
+    if (modal) modal.classList.add('hidden');
+};
