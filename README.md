@@ -19,65 +19,64 @@ Garcon is a lightweight, automated deployment system that uses GitHub webhooks t
 
 The blue-green deployment process is designed to be robust and zero-downtime:
 
-1.  **Webhook Trigger:** You push a new commit to your GitHub repository.
-2.  **Garcon Receives:** GitHub sends a webhook to the Garcon Flask application.
-3.  **Signature Verification:** Garcon verifies the webhook's signature to ensure it's a legitimate request from GitHub.
-4.  **Blue-Green Script:** The application invokes the `blue_green_deploy.sh` script with comprehensive logging.
-5.  **Code Update:** The script clones the repository (if it's the first time) or pulls the latest changes.
-6.  **Container Preparation:** New containers are built with UUID tags (Green environment).
-7.  **Health Checks:** System verifies new containers are healthy and responsive.
-8.  **Traffic Switch:** Traefik automatically routes traffic to healthy new containers.
-9.  **Cleanup:** Old containers (Blue environment) are safely removed.
+1. **Webhook Trigger:** You push a new commit to your GitHub repository.
+2. **Garcon Receives:** GitHub sends a webhook to the Garcon Flask application.
+3. **Signature Verification:** Garcon verifies the webhook's signature to ensure it's a legitimate request from GitHub.
+4. **Blue-Green Script:** The application invokes the blue_green_deploy.sh script with comprehensive logging.
+5. **Code Update:** The script clones the repository (if it's the first time) or pulls the latest changes.
+6. **Container Preparation:** New containers are built with UUID tags (Green environment).
+7. **Health Checks:** System verifies new containers are healthy and responsive.
+8. **Traffic Switch:** Traefik automatically routes traffic to healthy new containers.
+9. **Cleanup:** Old containers (Blue environment) are safely removed.
 10. **Monitoring:** All steps are logged with detailed information for debugging.
 
 ## Setup and Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/farhangbakhshi/garcon
-    cd garcon
-    ```
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/farhangbakhshi/garcon
+   cd garcon
+   ```
 
-2.  **Install Dependencies:**
-    It's recommended to use a virtual environment.
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
+2. **Install Dependencies:**
+   It's recommended to use a virtual environment.
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-3.  **Configure:**
-    Create a `config.py` file or modify the existing one to set your `GITHUB_WEBHOOK_SECRET`.
-    ```python
-    # config.py
-    class DevelopmentConfig:
-        GITHUB_WEBHOOK_SECRET = 'your-very-secret-string'
-        # ... other configs
-    ```
+3. **Configure:**
+   Create a .env file in the root directory to set your environment variables, such as `GITHUB_WEBHOOK_SECRET`.
+   ```bash
+   # .env
+   GITHUB_WEBHOOK_SECRET=your-very-secret-string
+   # Add other environment variables as needed
+   ```
 
-4.  **Run the Application:**
-    ```bash
-    python run.py
-    ```
-    The Flask application will start, typically on `http://127.0.0.1:5000`.
+4. **Run the Application:**
+   ```bash
+   python run.py
+   ```
+   The Flask application will start, typically on `http://127.0.0.1:5000`.
 
 ## Usage
 
 To deploy your own project with Garcon, follow these steps:
 
-1.  **Dockerize Your Project:** Ensure your project has a `Dockerfile` and a `docker-compose.yml` file.
+1. **Dockerize Your Project:** Ensure your project has a `Dockerfile` and a `docker-compose.yml` file.
 
-2.  **Configure GitHub Webhook:**
-    - Go to your project's repository on GitHub.
-    - Navigate to **Settings > Webhooks**.
-    - Click **Add webhook**.
-    - **Payload URL:** Enter the URL where Garcon is running (e.g., `http://<your-server-ip>:5000/webhook`).
-    - **Content type:** Select `application/json`.
-    - **Secret:** Enter the same secret you configured in `config.py`.
-    - Save the webhook.
+2. **Configure GitHub Webhook:**
+   - Go to your project's repository on GitHub.
+   - Navigate to **Settings > Webhooks**.
+   - Click **Add webhook**.
+   - **Payload URL:** Enter the URL where Garcon is running (e.g., `http://<your-server-ip>:5000/webhook`).
+   - **Content type:** Select `application/json`.
+   - **Secret:** Enter the same secret you configured in .env.
+   - Save the webhook.
 
-3.  **Push to Deploy:**
-    Commit and push a change to your repository. Garcon will automatically handle the rest. Your project will soon be available at a URL like `http://<your-repo-name>.localhost`.
+3. **Push to Deploy:**
+   Commit and push a change to your repository. Garcon will automatically handle the rest. Your project will soon be available at a URL like `http://<your-repo-name>.localhost`.
 
 ## API Endpoints
 
@@ -98,7 +97,7 @@ To deploy your own project with Garcon, follow these steps:
 ## Management Tools
 
 ### Garcon Management Script
-Use `./garcon-manage.sh` for common operations:
+Use garcon-manage.sh for common operations:
 
 ```bash
 # Check deployment status
@@ -150,7 +149,19 @@ Use `./garcon-manage.sh` for common operations:
 │   ├── routes.py             # API endpoints with monitoring
 │   ├── services.py           # Business logic with comprehensive logging
 │   ├── traefik_utils.py      # Utility to modify compose files
-│   └── utils.py              # Helper utilities
+│   ├── utils.py              # Helper utilities
+│   ├── static/               # Static assets (CSS, JS)
+│   │   ├── css/
+│   │   │   └── style.css     # Custom styles
+│   │   └── js/
+│   │       └── app.js        # Client-side JavaScript
+│   └── templates/            # Jinja2 templates
+│       ├── base.html         # Base template
+│       ├── projects.html     # Projects list view
+│       ├── add_project.html  # Add project form
+│       ├── project_detail.html # Project details view
+│       ├── logs_viewer.html  # Logs interface
+│       └── ...               # Other templates
 ├── projects_data/            # Cloned repositories are stored here
 ├── logs/                     # Application and deployment logs (with rotation)
 │   ├── app.log              # Application logs
