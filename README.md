@@ -1,6 +1,7 @@
 # 🧑‍🍳 Garcon: Automatic Docker Deployment
-
 Garcon is a lightweight, automated deployment system that uses GitHub webhooks to deploy Docker-based projects. It seamlessly integrates with Traefik to provide dynamic reverse proxying, allowing you to deploy and manage multiple web services on a single server with minimal configuration.
+
+![Dashboard](screenshot_dashboard.png?raw=true "Garcon Dashboard")
 
 ## Features
 
@@ -14,6 +15,22 @@ Garcon is a lightweight, automated deployment system that uses GitHub webhooks t
 - **Rollback Protection:** Failed deployments don't affect running services.
 - **Real-Time Monitoring:** Web dashboard and CLI tools for monitoring deployments.
 - **Extensible:** Easily adaptable for different project structures as long as they are containerized with Docker.
+
+## Dashboard Screenshots
+
+Here are parts of the Garcon dashboard:
+
+- **Logs Page:** View real-time application and deployment logs for monitoring and debugging.
+  ![Logs Page](screenshot_logs.png?raw=true "Garcon Logs Page")
+
+- **New Project Page:** Add and configure new projects for deployment.
+  ![New Project Page](screenshot_new_project.png?raw=true "Garcon New Project Page")
+
+The dashboard also includes the following pages and links:
+- **Projects List Page**
+- **Deployments List Page**
+- **Project Details Page**
+- **A Link to the Traefik Dashboard**
 
 ## How It Works
 
